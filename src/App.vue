@@ -1,9 +1,5 @@
 <script setup></script>
 
-<template>
-  <div class="bg-red-500 min-h-screen">
-    <router-view />
-  </div>
-</template>
+<template></template>
 
 <style scoped></style>

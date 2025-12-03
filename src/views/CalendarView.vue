@@ -1,9 +1,21 @@
 <template>
   <div class="p-8">
-    <h1 class="text-3xl font-bold mb-6">Gestión de Citas y Reservas</h1>
-    <div class="calendar-container">
-      <FullCalendar :options="calendarOptions" />
+    <h1 class="text-3xl font-bold mb-6">Gestión de Citas (Vista Temporal)</h1>
+
+    <div class="text-center p-10 border-2 border-dashed border-red-400 bg-red-50 rounded-lg">
+      <p class="text-lg font-semibold text-red-700">
+        El componente de calendario interactivo está temporalmente deshabilitado debido a conflictos
+        de versión.
+      </p>
+      <p class="mt-2 text-sm text-gray-600">Continuaremos con los módulos de Login y Chat.</p>
     </div>
+
+    <button
+      @click="isModalOpen = true"
+      class="mt-6 bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600"
+    >
+      Abrir Modal de Reserva (Prueba)
+    </button>
 
     <AppointmentModal
       :is-open="isModalOpen"
@@ -14,66 +26,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import FullCalendar from '@fullcalendar/vue'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import timeGridPlugin from '@fullcalendar/timegrid'
+import { ref } from 'vue'
 import AppointmentModal from '../components/AppointmentModal.vue'
-// Estado de la aplicación
+
+// Estado del modal (el único estado necesario ahora)
 const isModalOpen = ref(false)
-const currentEvent = reactive({}) // Para almacenar el evento seleccionado o la fecha de un nuevo evento
 
-// Opciones de FullCalendar
-const calendarOptions = reactive({
-  plugins: [dayGridPlugin, interactionPlugin, timeGridPlugin],
-  initialView: 'dayGridMonth',
-  headerToolbar: {
-    left: 'prev,next today',
-    center: 'title',
-    right: 'dayGridMonth,timeGridWeek,timeGridDay',
-  },
-  locale: 'es',
-  events: [
-    // Aquí se cargarán las citas desde el servidor (API)
-  ],
-  dateClick: handleDateClick, // Función para abrir el modal al hacer clic en una fecha/hora
-  eventClick: handleEventClick, // Función para abrir el modal al hacer clic en un evento
-})
-
-// Métodos de interacción con el calendario
-function handleDateClick(clickInfo) {
-  currentEvent.value = { start: clickInfo.dateStr }
-  isModalOpen.value = true
-}
-
-function handleEventClick(clickInfo) {
-  // Cargar datos del evento existente
-  currentEvent.value = {
-    id: clickInfo.event.id,
-    title: clickInfo.event.title,
-    start: clickInfo.event.startStr,
-    // ... otros datos ...
-  }
-  isModalOpen.value = true
-}
-
+// Función de placeholder
 function handleSave(appointmentData) {
-  // Lógica para enviar la cita a la API de Laravel
-  console.log('Cita a guardar:', appointmentData)
+  console.log('Cita de prueba guardada:', appointmentData)
   isModalOpen.value = false
-  // Después de guardar, recargar los eventos del calendario
+  alert('Cita simulada guardada. Revisa la consola.')
 }
-
-onMounted(() => {
-  // Cargar eventos iniciales de la API aquí
-})
 </script>
 
 <style scoped>
-/* Estilos básicos de FullCalendar */
-.calendar-container {
-  max-width: 1100px;
-  margin: 0 auto;
-}
+/* No se necesitan estilos de FullCalendar */
 </style>

@@ -15,11 +15,6 @@
     "init-tailwind": "tailwindcss init -p"
   },
   "dependencies": {
-    "@fullcalendar/core": "^6.1.19",
-    "@fullcalendar/daygrid": "^6.1.19",
-    "@fullcalendar/interaction": "^6.1.19",
-    "@fullcalendar/timegrid": "^6.1.19",
-    "@fullcalendar/vue": "^6.1.19",
     "autoprefixer": "^10.4.22",
     "axios": "^1.13.2",
     "fabric": "^6.9.0",
