@@ -54,7 +54,6 @@
           :disabled="isSending || !newMessage.trim()"
           class="bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition duration-150 disabled:opacity-50"
         >
-          <!-- Icono de Enviar -->
           <svg
             class="w-6 h-6"
             fill="none"
@@ -78,7 +77,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
-import Echo from '../services/echo' // Cliente de WebSockets (debe existir)
+import Echo from '../services/echo'
 import { useAuthStore } from '../stores/auth'
 
 const props = defineProps({
@@ -99,7 +98,6 @@ let typingTimeout = null
 // CLAVE: Generar el nombre del canal privado
 const getChannelName = () => {
   const currentUserId = authStore.user?.id || 0
-  // Ordena IDs para crear un nombre de canal único y consistente
   const ids = [currentUserId, props.recipientId].sort()
   return `private-chat.${ids[0]}.${ids[1]}`
 }
@@ -108,7 +106,6 @@ const formatTime = (dateString) => {
   return new Date(dateString).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
-// Asegura que el scroll se mantenga abajo (último mensaje)
 const scrollToBottom = () => {
   nextTick(() => {
     if (messagesContainer.value) {
@@ -142,7 +139,7 @@ async function sendMessage() {
     })
   } catch (error) {
     console.error('Error al enviar mensaje:', error)
-    alert('Error al enviar. Inténtalo de nuevo.') // RF-11 Resultado 4: Error muestra reintento
+    alert('Error al enviar. Inténtalo de nuevo.')
   } finally {
     isSending.value = false
   }
@@ -150,7 +147,6 @@ async function sendMessage() {
 
 // Escuchar eventos de WebSockets (RF-11)
 function setupEchoListeners() {
-  // 1. Dejar el canal anterior si existía
   if (chatChannel) {
     Echo.leave(chatChannel)
   }
@@ -158,11 +154,9 @@ function setupEchoListeners() {
   const channelName = getChannelName()
   chatChannel = channelName
 
-  // 2. Escuchar el canal privado (requiere autenticación)
   Echo.private(channelName)
-    // Escuchar el evento de nuevo mensaje (RF-11 Resultado 1: Mensaje aparece inmediatamente)
+    // Escuchar el evento de nuevo mensaje
     .listen('NewChatMessageEvent', (e) => {
-      // Solo añadir si el mensaje es del otro usuario
       if (e.message.sender_id === props.recipientId) {
         messages.value.push({
           ...e.message,
@@ -192,7 +186,7 @@ function sendTypingEvent() {
   }
 }
 
-// Cargar historial de mensajes al iniciar o cambiar de conversación
+// Cargar historial de mensajes (CU-06, CU-14)
 async function fetchMessages() {
   try {
     // Carga el historial entre el usuario actual y el destinatario
