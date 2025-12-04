@@ -53,12 +53,18 @@ const authStore = useAuthStore()
 
 // Definición de enlaces para ambos roles
 const navigationLinks = [
-  { name: 'Dashboard', to: '/dashboard', routeName: 'ClientDashboard', roles: [1] },
-  { name: 'Dashboard', to: '/artist/dashboard', routeName: 'TattooArtistDashboard', roles: [2] },
-  { name: 'Reservar Cita', to: '/calendar', routeName: 'Calendar', roles: [1] },
-  { name: 'Agenda', to: '/calendar', routeName: 'Calendar', roles: [2] },
-  { name: 'Chat', to: '/chat', routeName: 'ChatView', roles: [1, 2] },
-  { name: 'Diseños', to: '/designs', routeName: 'DesignGallery', roles: [1, 2] },
+  // NOTA: Los `to` ya no se usan en el router-link, solo el `routeName`
+  { name: 'Dashboard', to: '/app/client/dashboard', routeName: 'ClientDashboard', roles: [1] },
+  {
+    name: 'Dashboard',
+    to: '/app/artist/dashboard',
+    routeName: 'TattooArtistDashboard',
+    roles: [2],
+  },
+  { name: 'Reservar Cita', to: '/app/calendar', routeName: 'Calendar', roles: [1] },
+  { name: 'Agenda', to: '/app/calendar', routeName: 'Calendar', roles: [2] },
+  { name: 'Chat', to: '/app/chat', routeName: 'ChatView', roles: [1, 2] },
+  { name: 'Diseños', to: '/app/designs', routeName: 'DesignGallery', roles: [1, 2] }, // AQUÍ ESTÁ EL ENLACE DE DISEÑOS
 ]
 
 const filteredLinks = computed(() => {
