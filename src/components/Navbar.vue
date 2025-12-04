@@ -65,6 +65,8 @@ const navigationLinks = [
   { name: 'Agenda', to: '/app/calendar', routeName: 'Calendar', roles: [2] },
   { name: 'Chat', to: '/app/chat', routeName: 'ChatView', roles: [1, 2] },
   { name: 'Diseños', to: '/app/designs', routeName: 'DesignGallery', roles: [1, 2] }, // AQUÍ ESTÁ EL ENLACE DE DISEÑOS
+  // AÑADIR ESTE ENLACE DE PAGOS (RF-13)
+  { name: 'Pagos', to: '/app/payments', routeName: 'PaymentHistory', roles: [1, 2] },
 ]
 
 const filteredLinks = computed(() => {

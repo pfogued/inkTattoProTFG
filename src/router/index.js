@@ -9,7 +9,9 @@ import ClientDashboard from '../views/ClientDashboard.vue'
 import TattooArtistDashboard from '../views/TattooArtistDashboard.vue'
 import CalendarView from '../views/CalendarView.vue'
 import DesignGallery from '../views/DesignGallery.vue'
-import ChatView from '../views/ChatView.vue' // Necesario para el Chat
+import ChatView from '../views/ChatView.vue'
+// AÑADIR LA VISTA QUE FALTABA
+import PaymentHistory from '../views/PaymentHistory.vue' // <--- AGREGADO
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,13 +32,11 @@ const router = createRouter({
       path: '/register',
       name: 'Register',
       component: Register,
-      // Pendiente de implementar Register.vue
     },
     {
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: () => import('../views/ForgotPassword.vue'),
-      // Pendiente de implementar ForgotPassword.vue
     },
 
     // ----------------------------------------------------
@@ -47,39 +47,37 @@ const router = createRouter({
       component: MainLayout, // Componente que contiene la Navbar
       meta: { requiresAuth: true },
       children: [
-        // DASHBOARD CLIENTE (Mockup 2)
+        // DASHBOARDS
         {
           path: 'client/dashboard',
           name: 'ClientDashboard',
           component: ClientDashboard,
-          meta: { roles: [1] }, // Rol 1: Cliente
+          meta: { roles: [1] },
         },
-        // DASHBOARD TATUADOR (Mockup 8)
         {
           path: 'artist/dashboard',
           name: 'TattooArtistDashboard',
           component: TattooArtistDashboard,
-          meta: { roles: [2] }, // Rol 2: Tatuador
+          meta: { roles: [2] },
         },
-        // CALENDARIO/AGENDA (RF-5, RF-8)
-        {
-          path: 'calendar',
-          name: 'Calendar',
-          component: CalendarView,
-          meta: { roles: [1, 2] }, // Ambos roles
-        },
-        // CHAT (RF-11)
-        {
-          path: 'chat',
-          name: 'ChatView',
-          component: ChatView,
-          meta: { roles: [1, 2] }, // Ambos roles
-        },
-        // GALERÍA DE DISEÑOS (RF-9, RF-10)
+
+        // AGENDA
+        { path: 'calendar', name: 'Calendar', component: CalendarView, meta: { roles: [1, 2] } },
+
+        // CHAT Y DISEÑOS
+        { path: 'chat', name: 'ChatView', component: ChatView, meta: { roles: [1, 2] } },
         {
           path: 'designs',
           name: 'DesignGallery',
           component: DesignGallery,
+          meta: { roles: [1, 2] },
+        },
+
+        // PAGOS (RF-13) <--- AGREGADO EN CHILDREN
+        {
+          path: 'payments',
+          name: 'PaymentHistory',
+          component: PaymentHistory,
           meta: { roles: [1, 2] },
         },
       ],
@@ -100,29 +98,24 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
-  // 1. Inicializar el estado de autenticación al cargar la página
   if (!authStore.isLoggedIn) {
-    authStore.initialize() // Carga el token de LocalStorage
+    authStore.initialize()
   }
 
   const isAuthenticated = authStore.isLoggedIn
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
   const requiredRoles = to.meta.roles
-  const userRole = authStore.user?.role_id // Usamos role_id del store
+  const userRole = authStore.user?.role_id
 
   if (requiresAuth && !isAuthenticated) {
-    // Si requiere auth y no está autenticado -> a Login
     next({ name: 'Login' })
   } else if (isAuthenticated && requiredRoles && !requiredRoles.includes(userRole)) {
-    // Si está autenticado pero no tiene el rol correcto -> redirigir a su Dashboard
     const redirectName = userRole === 2 ? 'TattooArtistDashboard' : 'ClientDashboard'
     next({ name: redirectName })
   } else if (isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
-    // Si está autenticado y trata de ir a Login/Register -> redirigir a su Dashboard
     const redirectName = userRole === 2 ? 'TattooArtistDashboard' : 'ClientDashboard'
     next({ name: redirectName })
   } else {
-    // En cualquier otro caso, continuar
     next()
   }
 })
