@@ -57,7 +57,7 @@
           />
         </div>
 
-        <!-- Selector de Rol (RF-1: el sistema debe permitir registrarse con rol) -->
+        <!-- Selector de Rol -->
         <div>
           <label for="role" class="block text-sm font-medium text-gray-700">Tipo de Cuenta</label>
           <select
@@ -67,13 +67,12 @@
             :disabled="isLoading"
             class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
           >
-            <!-- Rol 1 es Cliente, 2 es Tatuador - según la lógica de tu Store de Pinia -->
             <option :value="1">Cliente</option>
             <option :value="2">Tatuador / Estudio</option>
           </select>
         </div>
 
-        <!-- Aceptar Términos (RF-16: El sistema debe mostrar confirmaciones) -->
+        <!-- Aceptar Términos (RF-16) -->
         <div class="flex items-center">
           <input
             id="terms"
@@ -88,7 +87,7 @@
           </label>
         </div>
 
-        <!-- Mensaje de Error/Éxito (RF-14: El sistema debe validar los campos) -->
+        <!-- Mensaje de Error/Éxito -->
         <p
           v-if="error"
           class="text-sm text-red-600 text-center font-medium p-2 border border-red-200 bg-red-50 rounded-lg"
@@ -96,26 +95,26 @@
           {{ error }}
         </p>
 
-        <!-- Botón de Enviar -->
+        <!-- Botón de Enviar (V-IF/V-ELSE CORREGIDO) -->
         <div>
           <button
             type="submit"
             :disabled="isLoading"
             class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 transition duration-150 disabled:opacity-50"
           >
-            <span v-if="isLoading">Registrando...</span>
-            <span v-else> Registrar Cuenta </span>
+            <!-- CORRECCIÓN CRÍTICA: Pegar v-if y v-else para evitar el error de compilación -->
+            <span v-if="isLoading">Registrando...</span><span v-else> Registrar Cuenta </span>
           </button>
         </div>
-      </form>
 
-      <!-- Link a Login -->
-      <div class="text-center text-sm mt-4">
-        ¿Ya tienes cuenta?
-        <router-link to="/login" class="font-medium text-indigo-600 hover:text-indigo-500">
-          Inicia sesión aquí
-        </router-link>
-      </div>
+        <!-- Link a Login -->
+        <div class="text-center text-sm mt-4">
+          ¿Ya tienes cuenta?
+          <router-link to="/login" class="font-medium text-indigo-600 hover:text-indigo-500">
+            Inicia sesión aquí
+          </router-link>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -139,11 +138,11 @@ const form = reactive({
 const isLoading = ref(false)
 const error = ref(null)
 
+// Función de registro
 async function submitRegister() {
   error.value = null
   isLoading.value = true
 
-  // Validación en el frontend (RF-14)
   if (!form.accept_terms) {
     error.value = 'Debes aceptar los términos y condiciones.'
     isLoading.value = false
@@ -151,28 +150,32 @@ async function submitRegister() {
   }
 
   try {
-    // 1. Llamada a tu API de Laravel para crear el usuario (RF-1)
-    // El endpoint /register se resuelve a http://localhost:8000/api/register (configurado en auth.js)
-    await axios.post('/register', {
+    // 🎯 SOLUCIÓN CRÍTICA: Usar la URL ABSOLUTA para forzar el envío POST
+    // Esto resuelve el error 405 (Method Not Allowed)
+    await axios.post('http://localhost:8000/api/register', {
       name: form.name,
       email: form.email,
       password: form.password,
       role_id: form.role_id,
     })
 
-    // 2. Éxito: Redirigir a la página de Login (RF-16)
+    // Éxito: Redirigir a la página de Login
     alert('Registro exitoso. ¡Ahora puedes iniciar sesión!')
     router.push({ name: 'Login' })
   } catch (err) {
-    // Manejo de errores de validación de Laravel (RF-14)
+    // Manejo de errores 422 (Validación) y 500
     let errorMessage = 'Error al registrar. Verifica tus datos.'
-    if (err.response && err.response.data.errors) {
-      // Si Laravel devuelve errores de validación específicos
-      const errors = err.response.data.errors
-      // Concatenar todos los mensajes de error
-      errorMessage = Object.values(errors).flat().join(' ')
-    } else if (err.response && err.response.data.message) {
-      errorMessage = err.response.data.message
+    if (err.response) {
+      if (err.response.data.errors) {
+        // Capturar errores de validación 422
+        const errors = err.response.data.errors
+        errorMessage = Object.values(errors).flat().join(' ')
+      } else if (err.response.data.message) {
+        errorMessage = err.response.data.message
+      }
+    } else {
+      // Fallo de red o servidor 500
+      errorMessage = 'Fallo al conectar con el servidor API. Revisa tu consola.'
     }
 
     error.value = errorMessage
