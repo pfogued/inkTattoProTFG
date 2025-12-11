@@ -1,211 +1,85 @@
 <template>
-  <div class="space-y-8 p-4 bg-white rounded-xl shadow-2xl">
-    <!-- Encabezado de Bienvenida -->
-    <header class="pb-4 border-b">
-      <!-- Muestra el nombre del usuario logeado, cargado desde Pinia -->
-      <h1 class="text-3xl font-extrabold text-gray-900">
-        Hola, {{ authStore.user?.name || 'Cliente' }}!
-      </h1>
-      <p class="mt-1 text-base text-gray-600">
-        Aquí tienes un resumen de tu actividad y próximos pasos.
-      </p>
-    </header>
+  <div class="p-8">
+    <h1 class="text-3xl font-extrabold mb-6 text-gray-900">
+      Dashboard de Cliente: {{ authStore.user?.name }}
+    </h1>
 
-    <!-- RF-5: Acciones Destacadas (Reserva, Chat, Diseños) -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Card 1: Reservar Nueva Cita (RF-5) -->
-      <div
-        @click="router.push({ name: 'Calendar' })"
-        class="bg-gray-50 p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 cursor-pointer border-t-4 border-indigo-500"
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Enlace a Citas (RF-3, RF-5) -->
+      <router-link
+        to="/app/calendar"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-xl shadow-lg transition transform hover:scale-105"
       >
         <div class="flex items-center space-x-4">
-          <div class="flex-shrink-0 p-3 bg-indigo-100 text-indigo-600 rounded-full">
-            <!-- Icono de calendario -->
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              ></path>
-            </svg>
-          </div>
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"
+            ></path>
+          </svg>
           <div>
-            <h3 class="text-lg font-semibold text-gray-800">Reservar Nueva Cita</h3>
-            <p class="text-sm text-gray-500">Agenda tu próximo tatuaje</p>
+            <p class="font-bold text-xl">Reservar Cita</p>
+            <p class="text-sm">Revisa tu agenda y reserva tu próximo tatuaje.</p>
           </div>
         </div>
-      </div>
+      </router-link>
 
-      <!-- Card 2: Mensajes No Leídos (RF-11) -->
-      <div
-        @click="router.push({ name: 'ChatView' })"
-        class="bg-gray-50 p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 cursor-pointer border-t-4 border-blue-500"
+      <!-- Enlace a Mensajería (RF-11) -->
+      <router-link
+        to="/app/chat"
+        class="bg-yellow-500 hover:bg-yellow-600 text-white p-6 rounded-xl shadow-lg transition transform hover:scale-105"
       >
         <div class="flex items-center space-x-4">
-          <div class="flex-shrink-0 p-3 bg-blue-100 text-blue-600 rounded-full">
-            <!-- Icono de mensaje -->
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-              ></path>
-            </svg>
-          </div>
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
+            ></path>
+          </svg>
           <div>
-            <h3 class="text-lg font-semibold text-gray-800">Mensajes</h3>
-            <p class="text-sm text-gray-500">{{ activeConversations }} conversaciones activas</p>
+            <p class="font-bold text-xl">Mensajería</p>
+            <p class="text-sm">Chatea con tu Tatuador sobre diseños (RF-12).</p>
           </div>
         </div>
-      </div>
+      </router-link>
 
-      <!-- Card 3: Mis Diseños (RF-10) -->
-      <div
-        @click="router.push({ name: 'DesignGallery' })"
-        class="bg-gray-50 p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 cursor-pointer border-t-4 border-green-500"
+      <!-- Enlace a Historial de Pagos (RF-13) -->
+      <router-link
+        to="/app/payments"
+        class="bg-green-600 hover:bg-green-700 text-white p-6 rounded-xl shadow-lg transition transform hover:scale-105"
       >
         <div class="flex items-center space-x-4">
-          <div class="flex-shrink-0 p-3 bg-green-100 text-green-600 rounded-full">
-            <!-- Icono de diseño -->
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8h12a2 2 0 002-2v-4a2 2 0 00-2-2H6a2 2 0 00-2 2v4a2 2 0 002 2z"
-              ></path>
-            </svg>
-          </div>
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M21 4H3c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h18c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H3V6h18v12zm-2-7h-4V8h-2v3h-4V8h-2v3H5v2h4v3h2v-3h4v3h2v-3h2v-2z"
+            ></path>
+          </svg>
           <div>
-            <h3 class="text-lg font-semibold text-gray-800">Mis Diseños</h3>
-            <p class="text-sm text-gray-500">Ver galería de diseños adjuntos</p>
+            <p class="font-bold text-xl">Historial de Pagos</p>
+            <p class="text-sm">Consulta tus depósitos y transacciones (RF-13).</p>
           </div>
         </div>
-      </div>
+      </router-link>
     </div>
 
-    <!-- Próxima Cita / Historial de Pagos (Mockup 2) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Panel de Próxima Cita -->
-      <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-        <h3 class="text-xl font-semibold mb-4 border-b pb-2">Próxima Cita</h3>
-        <div v-if="nextAppointment" class="space-y-3">
-          <p><strong>Tatuador:</strong> {{ nextAppointment.artistName }}</p>
-          <p><strong>Fecha:</strong> {{ nextAppointment.date }} a las {{ nextAppointment.time }}</p>
-          <p>
-            <strong>Estado:</strong>
-            <span :class="getStatusClass(nextAppointment.status)">{{
-              nextAppointment.status
-            }}</span>
-          </p>
-          <button
-            class="text-indigo-500 hover:underline text-sm mt-2"
-            @click="router.push({ name: 'Calendar' })"
-          >
-            Modificar o Cancelar (RF-7)
-          </button>
-        </div>
-        <div v-else class="text-gray-500">Aún no tienes citas reservadas.</div>
-      </div>
-
-      <!-- Panel de Historial de Pagos (RF-13) -->
-      <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-        <h3 class="text-xl font-semibold mb-4 border-b pb-2">Historial de Pagos</h3>
-        <div v-if="lastPayment" class="space-y-3">
-          <p><strong>Último Pago:</strong> {{ lastPayment.date }}</p>
-          <p><strong>Monto:</strong> {{ lastPayment.amount }}€</p>
-          <p>
-            <strong>Estado:</strong>
-            <span class="text-green-600 font-medium">{{ lastPayment.status }}</span>
-          </p>
-          <button
-            class="text-indigo-500 hover:underline text-sm mt-2"
-            @click="router.push({ name: 'PaymentHistory' })"
-          >
-            Consultar recibos (RF-13)
-          </button>
-        </div>
-        <div v-else class="text-gray-500">No hay pagos registrados.</div>
-      </div>
+    <!-- Sección de Últimos Diseños (RF-9) -->
+    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+      <h2 class="text-xl font-semibold mb-4 border-b pb-2">Diseños Recientes y Galería</h2>
+      <p class="text-gray-500">
+        Aquí se mostraría una vista previa de los diseños que tienes asociados o la galería pública.
+      </p>
+      <button
+        @click="router.push({ name: 'DesignGallery' })"
+        class="mt-4 py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+      >
+        Ir a Galería Completa
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 
 const authStore = useAuthStore()
 const router = useRouter()
-
-const activeConversations = ref(0)
-const nextAppointment = ref(null)
-const lastPayment = ref(null)
-
-const getStatusClass = (status) => {
-  switch (status) {
-    case 'Confirmada':
-      return 'text-green-600 font-medium'
-    case 'Pendiente':
-      return 'text-yellow-600 font-medium'
-    case 'Cancelada':
-      return 'text-red-600 font-medium'
-    default:
-      return 'text-gray-600'
-  }
-}
-
-async function fetchDashboardData() {
-  // Solo cargamos si el usuario está autenticado
-  if (!authStore.isLoggedIn) return
-
-  try {
-    // En un entorno real, harías llamadas a la API para obtener estos datos:
-    // const response = await axios.get('/api/client/dashboard');
-
-    // Simulación de datos para visualización (Mockup 2)
-    nextAppointment.value = {
-      artistName: 'Ana García',
-      date: '2026-05-15',
-      time: '14:00',
-      status: 'Confirmada',
-    }
-
-    lastPayment.value = {
-      date: '2026-04-01',
-      amount: 50,
-      status: 'Completado',
-    }
-
-    activeConversations.value = 2 // Simulación (RF-11)
-  } catch (error) {
-    console.error('Error al cargar datos del dashboard:', error)
-  }
-}
-
-onMounted(() => {
-  fetchDashboardData()
-})
 </script>
