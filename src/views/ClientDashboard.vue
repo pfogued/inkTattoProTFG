@@ -4,8 +4,9 @@
       Dashboard de Cliente: {{ authStore.user?.name }}
     </h1>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      <!-- Enlace a Citas (RF-3, RF-5) -->
+    <!-- CUADRÍCULA PRINCIPAL (Ahora con 4 columnas en pantallas grandes: lg:grid-cols-4) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Enlace 1: Citas (RF-3, RF-5) -->
       <router-link
         to="/app/calendar"
         class="bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-xl shadow-lg transition transform hover:scale-105"
@@ -23,7 +24,7 @@
         </div>
       </router-link>
 
-      <!-- Enlace a Mensajería (RF-11) -->
+      <!-- Enlace 2: Mensajería (RF-11) -->
       <router-link
         to="/app/chat"
         class="bg-yellow-500 hover:bg-yellow-600 text-white p-6 rounded-xl shadow-lg transition transform hover:scale-105"
@@ -41,7 +42,7 @@
         </div>
       </router-link>
 
-      <!-- Enlace a Historial de Pagos (RF-13) -->
+      <!-- Enlace 3: Historial de Pagos (RF-13) -->
       <router-link
         to="/app/payments"
         class="bg-green-600 hover:bg-green-700 text-white p-6 rounded-xl shadow-lg transition transform hover:scale-105"
@@ -58,21 +59,27 @@
           </div>
         </div>
       </router-link>
+
+      <!-- Enlace 4: Galería de Diseños (RF-9) -->
+      <router-link
+        to="/app/designs"
+        class="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-xl shadow-lg transition transform hover:scale-105"
+      >
+        <div class="flex items-center space-x-4">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M16 10c0 1.1-.9 2-2 2h-4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v4zm-2-2h-4v2h4V8zm4-4h-2V2h-2v2H8V2H6v2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12z"
+            ></path>
+          </svg>
+          <div>
+            <p class="font-bold text-xl">Galería de Diseños</p>
+            <p class="text-sm">Explora trabajos recientes de tatuadores (RF-9).</p>
+          </div>
+        </div>
+      </router-link>
     </div>
 
-    <!-- Sección de Últimos Diseños (RF-9) -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-      <h2 class="text-xl font-semibold mb-4 border-b pb-2">Diseños Recientes y Galería</h2>
-      <p class="text-gray-500">
-        Aquí se mostraría una vista previa de los diseños que tienes asociados o la galería pública.
-      </p>
-      <button
-        @click="router.push({ name: 'DesignGallery' })"
-        class="mt-4 py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
-      >
-        Ir a Galería Completa
-      </button>
-    </div>
+    <!-- ELIMINAMOS LA SECCIÓN DE DISEÑOS DEBAJO DEL GRID, YA QUE ESTÁ EN LA TARJETA -->
   </div>
 </template>
 
