@@ -1,118 +1,300 @@
 <template>
-  <!-- Modal de Subida (RF-9) -->
+  <!-- Modal de Subida de Diseño -->
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-75 flex items-center justify-center p-4"
+    class="fixed inset-0 z-50 overflow-y-auto"
+    aria-labelledby="modal-title"
+    role="dialog"
+    aria-modal="true"
   >
-    <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-      <header class="flex justify-between items-center border-b pb-3 mb-4">
-        <h3 class="text-xl font-semibold">Subir Nuevo Diseño (RF-9)</h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">&times;</button>
-      </header>
+    <div
+      class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0"
+    >
+      <!-- Overlay de fondo -->
+      <div
+        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        aria-hidden="true"
+        @click="closeModal"
+      ></div>
 
-      <form @submit.prevent="submitUpload" class="space-y-4">
-        <!-- Selección de Archivo -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700"
-            >Archivo de Diseño (JPEG/PNG)</label
-          >
-          <input
-            type="file"
-            required
-            @change="handleFileChange"
-            class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-          />
-        </div>
+      <!-- Contenedor principal del modal -->
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true"
+        >&#8203;</span
+      >
 
-        <!-- Descripción -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Descripción</label>
-          <textarea
-            v-model="description"
-            rows="3"
-            class="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-          ></textarea>
-        </div>
+      <div
+        class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+      >
+        <form @submit.prevent="handleDesignUpload">
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                <h3 class="text-xl leading-6 font-medium text-gray-900" id="modal-title">
+                  Subir Diseño a Portafolio (RF-8)
+                </h3>
+                <div class="mt-4 space-y-4">
+                  <!-- Título -->
+                  <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700"
+                      >Título del Diseño</label
+                    >
+                    <input
+                      type="text"
+                      id="title"
+                      v-model="form.title"
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
 
-        <!-- Mensaje de Estado -->
-        <p v-if="uploadError" class="text-sm text-red-600">{{ uploadError }}</p>
+                  <!-- URL de la Imagen -->
+                  <div>
+                    <label for="imageUrl" class="block text-sm font-medium text-gray-700"
+                      >URL de la Imagen (Link Directo)</label
+                    >
+                    <input
+                      type="url"
+                      id="imageUrl"
+                      v-model="form.image_url"
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Ej: https://i.imgur.com/mibonito.jpg"
+                    />
+                  </div>
 
-        <!-- Botones -->
-        <div class="flex justify-end space-x-3 pt-2">
-          <button
-            type="button"
-            @click="$emit('close')"
-            class="px-4 py-2 border rounded-xl text-gray-700 hover:bg-gray-200"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            :disabled="isUploading"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50"
-          >
-            <span v-if="isUploading">Subiendo...</span>
-            <span v-else>Subir y Asignar</span>
-          </button>
-        </div>
-      </form>
+                  <!-- Estilo -->
+                  <div>
+                    <label for="style" class="block text-sm font-medium text-gray-700"
+                      >Estilo del Tatuaje</label
+                    >
+                    <select
+                      id="style"
+                      v-model="form.style"
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="traditional">Traditional</option>
+                      <option value="watercolor">Watercolor</option>
+                      <option value="blackwork">Blackwork</option>
+                      <option value="geometric">Geometric</option>
+                      <option value="other">Otro</option>
+                    </select>
+                  </div>
+
+                  <!-- CLIENTE ASOCIADO (SELECT DINÁMICO) -->
+                  <div>
+                    <label for="clientId" class="block text-sm font-medium text-gray-700"
+                      >Cliente Asociado (Opcional)</label
+                    >
+                    <select
+                      id="clientId"
+                      v-model="form.client_id"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      :disabled="clientLoading"
+                    >
+                      <option :value="null" disabled>-- Seleccione un cliente --</option>
+                      <option :value="null">Diseño Público (Sin cliente asociado)</option>
+                      <option v-if="clientLoading" :value="null" disabled>
+                        Cargando clientes...
+                      </option>
+                      <option
+                        v-for="client in associatedClients"
+                        :key="client.id"
+                        :value="client.id"
+                      >
+                        {{ client.name }} (ID: {{ client.id }})
+                      </option>
+                    </select>
+                    <p
+                      v-if="!clientLoading && associatedClients.length === 0"
+                      class="text-xs text-gray-500 mt-1"
+                    >
+                      No hay clientes con citas reservadas aún.
+                    </p>
+                  </div>
+
+                  <!-- Checkbox de Privacidad -->
+                  <div class="flex items-center">
+                    <input
+                      id="isPrivate"
+                      type="checkbox"
+                      v-model="form.is_private"
+                      class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <label for="isPrivate" class="ml-2 block text-sm text-gray-900">
+                      Diseño Privado (Solo visible para el cliente asociado)
+                    </label>
+                  </div>
+
+                  <!-- Descripción -->
+                  <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700"
+                      >Descripción (Opcional)</label
+                    >
+                    <textarea
+                      id="description"
+                      v-model="form.description"
+                      rows="3"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    ></textarea>
+                  </div>
+
+                  <!-- Mensaje de Error/Éxito -->
+                  <p
+                    v-if="localMessage"
+                    :class="messageClass"
+                    class="text-sm text-center p-2 rounded-lg"
+                  >
+                    {{ localMessage }}
+                  </p>
+                  <p
+                    v-if="error"
+                    class="text-sm text-red-600 text-center font-medium p-2 border border-red-200 bg-red-500 rounded-lg"
+                  >
+                    {{ error }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones de Acción -->
+          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="submit"
+              :disabled="isLoading"
+              class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+            >
+              <span v-if="isLoading">Subiendo...</span>
+              <span v-else>Guardar Diseño</span>
+            </button>
+            <button
+              type="button"
+              @click="closeModal"
+              class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { defineProps, defineEmits, ref, reactive, watch } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
-  isOpen: Boolean,
+  isOpen: {
+    type: Boolean,
+    required: true,
+  },
 })
-
 const emit = defineEmits(['close', 'design-uploaded'])
 
-const file = ref(null)
-const description = ref('')
-const isUploading = ref(false)
-const uploadError = ref(null)
+const associatedClients = ref([])
+const clientLoading = ref(true)
 
-const handleFileChange = (event) => {
-  file.value = event.target.files[0]
+const form = reactive({
+  title: '',
+  image_url: '',
+  description: '',
+  style: 'traditional',
+  client_id: null,
+  is_private: false,
+})
+
+const isLoading = ref(false)
+const error = ref(null)
+const localMessage = ref(null)
+const messageClass = ref('')
+
+// Carga la lista de clientes asociados al tatuador
+const fetchAssociatedClients = async () => {
+  clientLoading.value = true
+  try {
+    const response = await axios.get('/clients/associated')
+    associatedClients.value = response.data.clients
+  } catch (error) {
+    console.error('Error al cargar clientes asociados:', error)
+    associatedClients.value = []
+  } finally {
+    clientLoading.value = false
+  }
 }
 
-async function submitUpload() {
-  if (!file.value) return
+// Si client_id cambia, ajusta la privacidad.
+watch(
+  () => form.client_id,
+  (newId) => {
+    // Si se selecciona un cliente, se sugiere que sea privado.
+    if (newId) {
+      form.is_private = true
+    } else {
+      // Si se selecciona el diseño público o se vacía, la privacidad se desactiva.
+      form.is_private = false
+    }
+  },
+)
 
-  isUploading.value = true
-  uploadError.value = null
+// Cuando el modal se abre, cargamos la lista de clientes
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (newVal) {
+      fetchAssociatedClients()
+    }
+  },
+  { immediate: true },
+)
 
-  // Crear un FormData para enviar el archivo y datos a Laravel
-  const formData = new FormData()
-  formData.append('design_file', file.value)
-  formData.append('description', description.value)
+const closeModal = () => {
+  Object.assign(form, {
+    title: '',
+    image_url: '',
+    description: '',
+    style: 'traditional',
+    client_id: null,
+    is_private: false,
+  })
+  error.value = null
+  localMessage.value = null
+  emit('close')
+}
 
-  // Opcional: Asignar a una cita específica
-  // formData.append('appointment_id', someAppointmentId.value);
+const handleDesignUpload = async () => {
+  error.value = null
+  localMessage.value = null
+  isLoading.value = true
+
+  // Convertir client_id a entero si existe, o dejarlo null
+  const payload = {
+    ...form,
+    client_id: form.client_id ? parseInt(form.client_id) : null,
+  }
 
   try {
-    // 1. Envío del archivo a la API (RF-9)
-    await axios.post('/designs/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+    const response = await axios.post('/designs', payload)
 
-    alert('Diseño subido con éxito!')
+    localMessage.value = response.data.message || 'Diseño subido con éxito.'
+    messageClass.value = 'bg-green-100 text-green-700'
 
-    // 2. Limpiar y cerrar
-    file.value = null
-    description.value = ''
-    emit('design-uploaded') // Notificar a la galería para recargar
-    emit('close')
-  } catch (error) {
-    uploadError.value = 'Error al subir el diseño. Archivo demasiado grande o formato incorrecto.'
-    console.error('Error de subida:', error)
+    emit('design-uploaded')
+
+    setTimeout(closeModal, 1500)
+  } catch (err) {
+    let msg = 'Error al subir. Revisa la URL (debe ser directa) y los campos.'
+    if (err.response && err.response.data.errors) {
+      msg = Object.values(err.response.data.errors).flat().join(' ')
+    } else if (err.response && err.response.data.message) {
+      msg = err.response.data.message
+    }
+    error.value = msg
+    localMessage.value = null
   } finally {
-    isUploading.value = false
+    isLoading.value = false
   }
 }
 </script>

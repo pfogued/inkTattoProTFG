@@ -34,13 +34,13 @@
       editar.
     </p>
 
-    <!-- Grid de Diseños (Mockup 6) -->
+    <!-- Grid de Diseños (Integración de la API) -->
     <div v-if="loading" class="text-center p-10">Cargando diseños...</div>
     <div
       v-else-if="!designs.length"
       class="text-center p-10 text-gray-500 border border-dashed rounded-xl"
     >
-      Aún no tienes diseños asociados.
+      Aún no hay diseños en la galería.
     </div>
     <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-6">
       <div
@@ -50,22 +50,23 @@
       >
         <!-- Miniatura del Diseño -->
         <div
-          @click="viewDesign(design.id)"
+          @click="viewDesign(design)"
           class="h-48 w-full bg-gray-100 flex items-center justify-center cursor-pointer hover:opacity-90 transition"
         >
-          <!-- Usar URL real del diseño o un placeholder -->
           <img
             :src="design.image_url"
             :alt="design.title"
             class="object-cover h-full w-full"
-            onerror="this.onerror=null; this.src='https://placehold.co/300x200/cccccc/333333?text=Diseño';"
+            onerror="this.onerror=null; this.src='https://placehold.co/300x200/cccccc/333333?text=Diseño+No+Cargado';"
           />
         </div>
 
         <!-- Información y Acciones -->
         <div class="p-4">
           <h3 class="font-semibold text-gray-800 truncate">{{ design.title }}</h3>
-          <p class="text-xs text-gray-500 mt-1">Subido: {{ design.date_uploaded }}</p>
+          <p class="text-xs text-gray-500 mt-1">
+            Subido por: {{ design.tattoo_artist?.name || 'Desconocido' }}
+          </p>
 
           <div class="mt-3 flex justify-between text-sm">
             <!-- RF-10: Anotaciones (Cliente) -->
@@ -73,12 +74,12 @@
               @click="editAnnotation(design)"
               class="text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              Anotar / Comentar
+              Anotar / Ver Detalle
             </button>
 
-            <!-- Opción de eliminar (solo Tatuador) -->
+            <!-- Opción de eliminar (solo Tatuador que subió el diseño) -->
             <button
-              v-if="authStore.isTattooArtist"
+              v-if="authStore.isTattooArtist && design.tattoo_artist_id === authStore.user.id"
               @click="deleteDesign(design.id)"
               class="text-red-500 hover:text-red-700 font-medium"
             >
@@ -95,10 +96,12 @@
       @close="isUploadModalOpen = false"
       @design-uploaded="fetchDesigns"
     />
+    <!-- CORRECCIÓN: Autocierre de la etiqueta -->
     <AnnotationEditor
       :design="selectedDesign"
       :isOpen="isAnnotationModalOpen"
       @close="isAnnotationModalOpen = false"
+      @design-updated="handleDesignUpdate"
     />
   </div>
 </template>
@@ -108,8 +111,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
-import AnnotationEditor from '../components/AnnotationEditor.vue' // Se creará después
-import UploadDesignModal from '../components/UploadDesignModal.vue' // Se creará después
+import AnnotationEditor from '../components/AnnotationEditor.vue'
+import UploadDesignModal from '../components/UploadDesignModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -120,42 +123,12 @@ const isUploadModalOpen = ref(false)
 const isAnnotationModalOpen = ref(false)
 const selectedDesign = ref(null)
 
-// Datos simulados (Reemplazar con API de Laravel)
-const mockDesigns = [
-  {
-    id: 1,
-    title: 'Dragón en espalda',
-    image_url: 'https://placehold.co/300x200/cccccc/333333?text=Dragon',
-    date_uploaded: '15/01/26',
-  },
-  {
-    id: 2,
-    title: 'Rosa realista',
-    image_url: 'https://placehold.co/300x200/cccccc/333333?text=Rosa',
-    date_uploaded: '15/01/26',
-  },
-  {
-    id: 3,
-    title: 'Frase en antebrazo',
-    image_url: 'https://placehold.co/300x200/cccccc/333333?text=Frase',
-    date_uploaded: '15/01/26',
-  },
-  {
-    id: 4,
-    title: 'Diseño 4',
-    image_url: 'https://placehold.co/300x200/cccccc/333333?text=Diseno+4',
-    date_uploaded: '15/01/26',
-  },
-]
-
-// CU-07: Ver diseños
+// CU-07: Ver diseños (Integración con Laravel DesignController index)
 async function fetchDesigns() {
   loading.value = true
   try {
-    // const response = await axios.get('/designs');
-    // designs.value = response.data;
-
-    designs.value = mockDesigns // Usar mock data
+    const response = await axios.get('/designs')
+    designs.value = response.data.designs
   } catch (error) {
     console.error('Error al cargar diseños:', error)
     designs.value = []
@@ -169,28 +142,38 @@ function openUploadModal() {
   isUploadModalOpen.value = true
 }
 
-// CU-08: Añadir anotaciones (Cliente)
+// RF-10: Añadir anotaciones (Cliente) / Ver detalle
 function editAnnotation(design) {
   selectedDesign.value = design
   isAnnotationModalOpen.value = true
 }
 
-// CU-08: Ver diseño
-function viewDesign(id) {
-  // Redirigir a una vista de detalle o abrir el editor en modo solo lectura
-  const design = designs.value.find((d) => d.id === id)
-  editAnnotation(design)
+// CU-08: Ver diseño (Mismo modal que Anotación)
+function viewDesign(design) {
+  editAnnotation(design) // Abre el modal de detalle/edición
+}
+
+// NUEVO: Maneja la actualización de una anotación desde el modal
+function handleDesignUpdate(updatedDesign) {
+  // Encuentra el índice del diseño actualizado
+  const index = designs.value.findIndex((d) => d.id === updatedDesign.id)
+  if (index !== -1) {
+    // Reemplaza el objeto antiguo por el nuevo para refrescar la lista
+    designs.value[index] = updatedDesign
+  }
+  // Asegura que el modal de detalle también tenga la versión más reciente
+  selectedDesign.value = updatedDesign
 }
 
 // Lógica para eliminar diseño (solo Tatuador)
 async function deleteDesign(id) {
-  if (confirm('¿Estás seguro de eliminar este diseño?')) {
+  if (confirm('¿Estás seguro de eliminar este diseño? Esta acción no se puede deshacer.')) {
     try {
       await axios.delete(`/designs/${id}`)
-      alert('Diseño eliminado.')
+      alert('Diseño eliminado con éxito.')
       fetchDesigns() // Recargar lista
     } catch (error) {
-      alert('Error al eliminar el diseño.')
+      alert('Error al eliminar el diseño. Revisa si eres el Tatuador que lo subió.')
     }
   }
 }

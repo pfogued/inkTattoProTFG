@@ -12,14 +12,15 @@
       <p class="text-lg font-semibold text-gray-700">¿Listo para tu próximo tatuaje?</p>
       <button
         @click="isModalOpen = true"
-        class="mt-6 bg-indigo-600 text-white py-3 px-6 rounded-xl hover:bg-indigo-700 transition font-bold"
+        :disabled="artistsLoading"
+        class="mt-6 bg-indigo-600 text-white py-3 px-6 rounded-xl hover:bg-indigo-700 transition font-bold disabled:opacity-50"
       >
-        Reservar Nueva Cita (RF-5)
+        <span v-if="artistsLoading">Cargando Tatuadores...</span>
+        <span v-else>Reservar Nueva Cita (RF-5)</span>
       </button>
     </div>
 
     <!-- 2. INTERFAZ PARA EL TATUADOR (RF-8: Gestión de Agenda) -->
-    <!-- ESTE BLOQUE SOLO SE MUESTRA SI NO ES CLIENTE (v-else-if) -->
     <div v-else-if="authStore.isTattooArtist" class="text-right pb-4">
       <button
         @click="openAvailabilityModal"
@@ -27,8 +28,6 @@
       >
         Establecer Disponibilidad (RF-8)
       </button>
-
-      <!-- Nota: La acción rápida de reservar citas para el tatuador (en nombre de un cliente) se haría desde otro modal -->
     </div>
 
     <!-- 3. Contenido Principal: Lista de Citas (Agenda) -->
@@ -36,20 +35,30 @@
       <h2 class="text-xl font-semibold mb-4 border-b pb-2">
         Agenda de Citas {{ authStore.isClient ? 'Confirmadas' : 'Completas' }}
       </h2>
-      <ul class="divide-y divide-gray-200">
+      <div v-if="loadingAppointments" class="py-4 text-center text-gray-500">
+        Cargando agenda real...
+      </div>
+      <ul v-else class="divide-y divide-gray-200">
         <li
           v-for="appointment in appointments"
           :key="appointment.id"
           class="py-4 flex justify-between items-center"
         >
           <div>
-            <p class="text-lg font-medium text-gray-900">{{ appointment.title }}</p>
+            <!-- Muestra info real de la API -->
+            <p class="text-lg font-medium text-gray-900">{{ appointment.description }}</p>
             <p class="text-sm text-gray-500">
-              Fecha: {{ appointment.date }} |
+              Fecha: {{ formatDateTime(appointment.scheduled_at) }} |
               <!-- Muestra el artista si eres cliente, o el cliente si eres artista -->
-              <span v-if="authStore.isClient">Tatuador: {{ appointment.artist }}</span>
-              <span v-else>Cliente: {{ appointment.client }}</span>
+              <span v-if="authStore.isClient">Tatuador: {{ appointment.tattoo_artist?.name }}</span>
+              <span v-else>Cliente: {{ appointment.client?.name }}</span>
             </p>
+            <span
+              :class="getStatusBadgeClass(appointment.status)"
+              class="text-xs font-medium px-2.5 py-0.5 rounded-full mt-1 inline-block"
+            >
+              {{ appointment.status.toUpperCase() }}
+            </span>
           </div>
           <button
             @click="viewDetails(appointment.id)"
@@ -58,43 +67,77 @@
             Ver/Gestionar (RF-7)
           </button>
         </li>
-        <li v-if="!appointments.length" class="py-4 text-gray-500">No hay citas registradas.</li>
+        <li v-if="!appointments.length && !loadingAppointments" class="py-4 text-gray-500">
+          No hay citas registradas.
+        </li>
       </ul>
     </div>
 
     <!-- Modal de Reserva de Citas (RF-5) -->
-    <AppointmentModal :is-open="isModalOpen" @close="isModalOpen = false" />
+    <AppointmentModal
+      :is-open="isModalOpen"
+      :artists="availableTattooArtists"
+      :artists-loading="artistsLoading"
+      @close="closeReservationModal"
+      @appointment-booked="handleAppointmentBooked"
+    />
+    <!-- CORRECCIÓN: Etiqueta autocerrada -->
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import axios from 'axios'
 import { useAuthStore } from '../stores/auth' // Importamos el store para el control de rol
 import AppointmentModal from '../components/AppointmentModal.vue'
-import axios from 'axios'
 
 const authStore = useAuthStore()
-const isModalOpen = ref(false)
 
-// Datos de citas simulados (Representa la Agenda del Tatuador/Cliente)
-const appointments = ref([
-  {
-    id: 101,
-    title: 'Diseño de Loto',
-    date: '2026-03-15',
-    artist: 'Ana Tatuadora',
-    client: 'Pablo Cliente',
-    status: 'Confirmada',
-  },
-  {
-    id: 102,
-    title: 'Retoque de Frase',
-    date: '2026-04-01',
-    artist: 'Carlos Tatuador',
-    client: 'Marta Cliente',
-    status: 'Confirmada',
-  },
-])
+// --- ESTADO DE DATOS ---
+const isModalOpen = ref(false)
+const appointments = ref([]) // Citas reales
+const loadingAppointments = ref(true)
+
+// --- ESTADO DE ARTISTAS ---
+const artistsLoading = ref(true)
+const availableTattooArtists = ref([])
+
+// --- FUNCIONES DE CARGA DE DATOS ---
+async function fetchTattooArtists() {
+  artistsLoading.value = true
+  try {
+    const response = await axios.get('/tattoo-artists')
+    availableTattooArtists.value = response.data.artists
+  } catch (error) {
+    console.error('Error al cargar artistas:', error)
+  } finally {
+    artistsLoading.value = false
+  }
+}
+
+async function fetchAppointments() {
+  loadingAppointments.value = true
+  try {
+    const response = await axios.get('/appointments')
+    appointments.value = response.data.appointments
+  } catch (error) {
+    console.error('Error al cargar citas:', error)
+  } finally {
+    loadingAppointments.value = false
+  }
+}
+
+// Función para cerrar el modal y refrescar la lista
+function closeReservationModal() {
+  isModalOpen.value = false
+  fetchAppointments()
+}
+
+// Función para manejar el evento de reserva exitosa desde el modal
+function handleAppointmentBooked() {
+  isModalOpen.value = false
+  fetchAppointments()
+}
 
 function viewDetails(id) {
   // Alerta de gestión temporal (RF-7)
@@ -106,8 +149,29 @@ function openAvailabilityModal() {
   alert('Funcionalidad de establecer disponibilidad del Tatuador (RF-8).')
 }
 
+// --- UTILITIES ---
+const formatDateTime = (datetime) => {
+  return new Date(datetime).toLocaleString()
+}
+const getStatusBadgeClass = (status) => {
+  switch (status) {
+    case 'approved':
+      return 'bg-green-100 text-green-800'
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'canceled':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
 onMounted(() => {
-  // Aquí se cargaría la agenda real desde Laravel
-  // axios.get(`/appointments/agenda?role=${authStore.userRole}`);
+  if (authStore.isAuthenticated) {
+    fetchAppointments()
+    if (authStore.isClient) {
+      fetchTattooArtists()
+    }
+  }
 })
 </script>

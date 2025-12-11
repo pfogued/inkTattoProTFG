@@ -19,19 +19,32 @@
       <div class="lg:col-span-1 bg-white p-6 shadow-xl rounded-xl h-fit">
         <h2 class="text-2xl font-bold text-indigo-700 mb-4 border-b pb-2">Reservar Nueva Cita</h2>
         <form @submit.prevent="submitAppointment">
-          <!-- Tatuador (Para simulación, usamos ID 2) -->
+          <!-- Tatuador (SELECTOR DINÁMICO) -->
           <div class="mb-4">
             <label for="artistId" class="block text-sm font-medium text-gray-700"
-              >ID del Tatuador (Usar ID 2 para pruebas)</label
+              >Seleccionar Tatuador</label
             >
-            <input
-              type="number"
+            <select
               id="artistId"
               v-model="form.tattoo_artist_id"
               required
+              :disabled="artistsLoading || availableTattooArtists.length === 0"
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Ej: 2"
-            />
+            >
+              <!-- Opción inicial que fuerza la selección -->
+              <option :value="null" disabled>-- Seleccione un artista --</option>
+              <option v-if="artistsLoading" :value="null" disabled>Cargando artistas...</option>
+
+              <option v-for="artist in availableTattooArtists" :key="artist.id" :value="artist.id">
+                {{ artist.name }} (ID: {{ artist.id }})
+              </option>
+            </select>
+            <p
+              v-if="!artistsLoading && availableTattooArtists.length === 0"
+              class="text-xs text-red-500 mt-1"
+            >
+              No hay tatuadores disponibles. Por favor, crea uno.
+            </p>
           </div>
 
           <!-- Fecha y Hora -->
@@ -74,7 +87,7 @@
           <!-- Botón de Reserva (Simula Pago de 50€) -->
           <button
             type="submit"
-            :disabled="isLoading"
+            :disabled="isLoading || artistsLoading || form.tattoo_artist_id === null"
             class="w-full py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition duration-150"
           >
             <span v-if="isLoading">Procesando depósito...</span>
@@ -141,23 +154,44 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import axios from 'axios'
-// CORRECCIÓN: Rutas relativas para evitar el fallo de alias '@/'
 import { useAuthStore } from '../stores/auth'
 import AppointmentList from '../components/AppointmentList.vue'
 
 const authStore = useAuthStore()
 const isLoading = ref(false)
 const listLoading = ref(true)
+const artistsLoading = ref(true)
 const appointments = ref([])
+const availableTattooArtists = ref([])
 const appointmentMessage = ref('')
 const messageClass = ref('')
 
 // Formulario de Reserva (Cliente)
 const form = reactive({
-  tattoo_artist_id: 2,
+  tattoo_artist_id: null, // <-- Inicializado a null
   scheduled_at: '',
   description: '',
 })
+
+// Función para obtener la lista de Tatuadores
+const fetchTattooArtists = async () => {
+  artistsLoading.value = true
+  try {
+    const response = await axios.get('/tattoo-artists')
+    availableTattooArtists.value = response.data.artists
+
+    // Si hay artistas, pre-selecciona el primero.
+    if (availableTattooArtists.value.length > 0) {
+      form.tattoo_artist_id = availableTattooArtists.value[0].id
+    } else {
+      form.tattoo_artist_id = null // Asegura que se mantenga en null si no hay artistas
+    }
+  } catch (error) {
+    console.error('Error al cargar artistas:', error)
+  } finally {
+    artistsLoading.value = false
+  }
+}
 
 // Función para obtener citas (RF-5)
 const fetchAppointments = async () => {
@@ -185,16 +219,24 @@ const submitAppointment = async () => {
   appointmentMessage.value = ''
   messageClass.value = ''
 
+  if (form.tattoo_artist_id === null) {
+    appointmentMessage.value = 'Por favor, selecciona un tatuador.'
+    messageClass.value = 'bg-red-100 text-red-700'
+    isLoading.value = false
+    return
+  }
+
   try {
     const response = await axios.post('/appointments', form)
 
     appointmentMessage.value = response.data.message
     messageClass.value = 'bg-green-100 text-green-700'
 
+    // Limpiar formulario (excepto el artista seleccionado)
     form.scheduled_at = ''
     form.description = ''
 
-    fetchAppointments()
+    fetchAppointments() // Recargar la lista de citas
   } catch (error) {
     let msg = 'Error desconocido al reservar.'
     if (error.response && error.response.data.message) {
@@ -251,10 +293,9 @@ const getStatusBadgeClass = (status) => {
 onMounted(() => {
   if (authStore.isAuthenticated) {
     fetchAppointments()
+    if (authStore.isClient) {
+      fetchTattooArtists() // Solo cargamos la lista si es cliente
+    }
   }
 })
 </script>
-
-<style scoped>
-/* Estilos específicos para la gestión de citas */
-</style>

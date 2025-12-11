@@ -1,263 +1,205 @@
 <template>
-  <!-- Este es el modal principal que se controla con la prop 'isOpen' -->
+  <!-- Modal de Reserva de Citas (RF-5) -->
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-75 flex items-center justify-center p-4"
+    class="fixed inset-0 z-50 overflow-y-auto"
+    aria-labelledby="modal-title"
+    role="dialog"
+    aria-modal="true"
   >
-    <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl p-6">
-      <div class="flex justify-between items-center border-b pb-3 mb-4">
-        <h3 class="text-2xl font-semibold text-gray-800">
-          Reserva tu Cita (Paso {{ currentStep }}/4)
-        </h3>
-        <button @click="$emit('close')" class="text-gray-400 text-3xl hover:text-gray-600">
-          &times;
-        </button>
-      </div>
+    <div
+      class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0"
+    >
+      <div
+        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        aria-hidden="true"
+        @click="$emit('close')"
+      ></div>
 
-      <!-- Barra de Progreso (Mockup 4) -->
-      <div class="mb-6">
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div
-            class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500"
-            :style="{ width: progressPercentage }"
-          ></div>
-        </div>
-        <div class="flex justify-between text-xs mt-2 text-gray-500 font-medium">
-          <span :class="{ 'text-indigo-600': currentStep >= 1 }">1. Tatuador</span>
-          <span :class="{ 'text-indigo-600': currentStep >= 2 }">2. Fecha y hora</span>
-          <span :class="{ 'text-indigo-600': currentStep >= 3 }">3. Detalles</span>
-          <span :class="{ 'text-indigo-600': currentStep >= 4 }">4. Confirmación</span>
-        </div>
-      </div>
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true"
+        >&#8203;</span
+      >
 
-      <!-- Contenido de los Pasos -->
-      <form @submit.prevent="nextStep">
-        <!-- PASO 1: Selección de Tatuador (Mockup 4) -->
-        <div v-if="currentStep === 1" class="space-y-4">
-          <h4 class="text-lg font-medium mb-4">Selecciona un Tatuador</h4>
-          <div class="grid grid-cols-2 gap-4">
-            <label
-              v-for="artist in artists"
-              :key="artist.id"
-              :class="{
-                'border-indigo-500 ring-2 ring-indigo-500 bg-indigo-50':
-                  form.tattooArtistId === artist.id,
-              }"
-              class="p-4 border border-gray-300 rounded-xl cursor-pointer transition hover:shadow-md"
+      <div
+        class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full"
+      >
+        <form @submit.prevent="submitAppointment">
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+              <h3
+                class="text-xl leading-6 font-medium text-gray-900 mb-4 border-b pb-2"
+                id="modal-title"
+              >
+                Reservar Nueva Cita (RF-3)
+              </h3>
+              <div class="space-y-4">
+                <!-- Tatuador (SELECTOR DINÁMICO) -->
+                <div>
+                  <label for="artistId" class="block text-sm font-medium text-gray-700"
+                    >Seleccionar Tatuador</label
+                  >
+                  <select
+                    id="artistId"
+                    v-model="form.tattoo_artist_id"
+                    required
+                    :disabled="artistsLoading || artists.length === 0"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option :value="null" disabled>-- Seleccione un artista --</option>
+                    <option v-if="artistsLoading" :value="null" disabled>
+                      Cargando artistas...
+                    </option>
+
+                    <option v-for="artist in artists" :key="artist.id" :value="artist.id">
+                      {{ artist.name }} (ID: {{ artist.id }})
+                    </option>
+                  </select>
+                  <p
+                    v-if="!artistsLoading && artists.length === 0"
+                    class="text-xs text-red-500 mt-1"
+                  >
+                    No hay tatuadores disponibles.
+                  </p>
+                </div>
+
+                <!-- Fecha y Hora -->
+                <div>
+                  <label for="scheduledAt" class="block text-sm font-medium text-gray-700"
+                    >Fecha y Hora</label
+                  >
+                  <input
+                    type="datetime-local"
+                    id="scheduledAt"
+                    v-model="form.scheduled_at"
+                    required
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+
+                <!-- Descripción -->
+                <div>
+                  <label for="description" class="block text-sm font-medium text-gray-700"
+                    >Descripción del Tatuaje</label
+                  >
+                  <textarea
+                    id="description"
+                    v-model="form.description"
+                    required
+                    rows="3"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  ></textarea>
+                </div>
+
+                <!-- Mensaje de Cita -->
+                <p
+                  v-if="appointmentMessage"
+                  :class="messageClass"
+                  class="text-center p-2 rounded-lg"
+                >
+                  {{ appointmentMessage }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones de Acción -->
+          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="submit"
+              :disabled="isLoading || artistsLoading || form.tattoo_artist_id === null"
+              class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
             >
-              <input type="radio" :value="artist.id" v-model="form.tattooArtistId" class="hidden" />
-              <p class="font-bold text-gray-800">{{ artist.name }}</p>
-              <p class="text-sm text-gray-600">{{ artist.specialty }}</p>
-            </label>
+              <span v-if="isLoading">Procesando depósito...</span>
+              <span v-else>Reservar y Pagar Depósito (50€)</span>
+            </button>
+            <button
+              type="button"
+              @click="$emit('close')"
+              class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm"
+            >
+              Cancelar
+            </button>
           </div>
-          <p class="text-sm text-gray-500 mt-4">Solo puedes reservar con tatuadores disponibles.</p>
-        </div>
-
-        <!-- PASO 2: Fecha y Hora (RF-5, RF-6) -->
-        <div v-else-if="currentStep === 2" class="space-y-4">
-          <h4 class="text-lg font-medium mb-4">Selecciona Fecha y Hora</h4>
-          <input
-            type="date"
-            v-model="form.date"
-            required
-            @change="checkAvailability"
-            class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
-          />
-          <input
-            type="time"
-            v-model="form.time"
-            required
-            @change="checkAvailability"
-            class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
-          />
-
-          <!-- Mensaje de Disponibilidad (RF-6) -->
-          <div
-            v-if="availabilityMessage"
-            :class="
-              availabilityMessage.type === 'error'
-                ? 'text-red-600 bg-red-100 border-red-300'
-                : 'text-green-600 bg-green-100 border-green-300'
-            "
-            class="p-3 border rounded-lg text-sm"
-          >
-            {{ availabilityMessage.text }}
-          </div>
-        </div>
-
-        <!-- PASO 3: Detalles (RF-14) -->
-        <div v-else-if="currentStep === 3" class="space-y-4">
-          <h4 class="text-lg font-medium mb-4">Detalles y Comentarios</h4>
-          <textarea
-            v-model="form.details"
-            placeholder="Descripción del tatuaje, tamaño aproximado, ubicación..."
-            rows="4"
-            class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
-            minlength="20"
-            required
-          ></textarea>
-          <p class="text-sm text-gray-500">Mínimo 20 caracteres.</p>
-        </div>
-
-        <!-- PASO 4: Confirmación y Pago (RF-12) -->
-        <div v-else-if="currentStep === 4" class="space-y-6">
-          <h4 class="text-lg font-medium mb-4">Resumen y Pago</h4>
-          <div class="p-4 bg-gray-50 rounded-lg border border-gray-300 space-y-2">
-            <p><strong>Tatuador:</strong> {{ selectedArtistName }}</p>
-            <p><strong>Fecha/Hora:</strong> {{ form.date }} a las {{ form.time }}</p>
-            <p><strong>Detalles:</strong> {{ form.details.substring(0, 100) }}...</p>
-            <p class="mt-4 text-xl font-bold text-red-600">Depósito Requerido: 50€</p>
-          </div>
-
-          <!-- Componente de Pago (RF-12) -->
-          <StripeCheckout :appointment-id="0" :amount="50" />
-        </div>
-
-        <!-- Controles del Navegador (Mockup 4) -->
-        <div class="mt-6 flex justify-between border-t pt-4">
-          <button
-            type="button"
-            @click="prevStep"
-            class="px-4 py-2 border rounded-xl text-gray-700 bg-gray-100 hover:bg-gray-200 transition disabled:opacity-50"
-            :disabled="currentStep === 1"
-          >
-            ← Anterior
-          </button>
-
-          <button
-            v-if="currentStep < 4"
-            type="submit"
-            class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition disabled:opacity-50"
-            :disabled="!isStepValid"
-          >
-            Siguiente →
-          </button>
-
-          <!-- En el paso 4, el botón es el de pago (StripeCheckout) -->
-          <button
-            v-else
-            type="button"
-            @click="$emit('close')"
-            class="px-4 py-2 bg-gray-400 text-white font-bold rounded-xl hover:bg-gray-500 transition"
-          >
-            Cerrar
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { defineProps, defineEmits, ref, reactive, watch } from 'vue'
 import axios from 'axios'
-import StripeCheckout from './StripeCheckout.vue' // Componente de pago (RF-12)
 
 const props = defineProps({
-  isOpen: Boolean,
+  isOpen: { type: Boolean, required: true },
+  artists: { type: Array, required: true },
+  artistsLoading: { type: Boolean, required: true },
 })
 
-const emit = defineEmits(['close', 'save-appointment'])
+const emit = defineEmits(['close', 'appointment-booked'])
 
-// Estado de la reserva
-const currentStep = ref(1)
-const availabilityMessage = ref(null)
+const isLoading = ref(false)
+const appointmentMessage = ref('')
+const messageClass = ref('')
 
 const form = reactive({
-  tattooArtistId: null,
-  date: '',
-  time: '',
-  details: '',
+  tattoo_artist_id: null,
+  scheduled_at: '',
+  description: '',
 })
 
-// Datos simulados
-const artists = [
-  { id: 1, name: 'Carlos (Tatuador)', specialty: 'Realismo' },
-  { id: 2, name: 'Ana (Tatuadora)', specialty: 'Tradicional' },
-]
+// Inicializar form.tattoo_artist_id con el primer artista disponible cuando la lista cargue
+watch(
+  () => props.artists,
+  (newArtists) => {
+    if (newArtists.length > 0) {
+      form.tattoo_artist_id = newArtists[0].id
+    } else {
+      form.tattoo_artist_id = null
+    }
+  },
+  { immediate: true },
+)
 
-// Computed Properties
-const progressPercentage = computed(() => (currentStep.value / 4) * 100 + '%')
-const selectedArtistName = computed(() => {
-  const artist = artists.find((a) => a.id === form.tattooArtistId)
-  return artist ? artist.name : 'No seleccionado'
-})
-
-const isStepValid = computed(() => {
-  // Validación de pasos (RF-14)
-  if (currentStep.value === 1) return !!form.tattooArtistId
-  if (currentStep.value === 2)
-    return form.date && form.time && availabilityMessage.value?.type === 'success'
-  if (currentStep.value === 3) return form.details.length >= 20
-  return true
-})
-
-// Watchers para resetear o verificar
+// Reiniciar el mensaje al abrir/cerrar
 watch(
   () => props.isOpen,
   (newVal) => {
     if (newVal) {
-      currentStep.value = 1
-      // Opcional: Resetear form aquí
+      appointmentMessage.value = ''
+      form.scheduled_at = ''
+      form.description = ''
     }
   },
 )
 
-watch([() => form.date, () => form.time, () => form.tattooArtistId], () => {
-  if (currentStep.value === 2) {
-    checkAvailability() // Re-validar si cambia la fecha/hora
-  }
-})
-
-// Métodos
-function nextStep() {
-  if (currentStep.value < 4 && isStepValid.value) {
-    currentStep.value++
-  }
-}
-
-function prevStep() {
-  if (currentStep.value > 1) {
-    currentStep.value--
-  } else {
-    emit('close')
-  }
-}
-
-// RF-6: El sistema debe evitar que dos citas se solapen
-async function checkAvailability() {
-  if (!form.tattooArtistId || !form.date || !form.time) {
-    availabilityMessage.value = null
-    return
-  }
-
-  availabilityMessage.value = { text: 'Verificando disponibilidad...', type: 'info' }
+const submitAppointment = async () => {
+  isLoading.value = true
+  appointmentMessage.value = ''
+  messageClass.value = ''
 
   try {
-    // 1. Llamada al endpoint de Laravel para validar (RF-6)
-    // const response = await axios.post('/appointments/check-availability', form);
+    const response = await axios.post('/appointments', form)
 
-    // SIMULACIÓN: Siempre disponible si es un futuro (Para que el front avance)
-    const now = new Date()
-    const selectedDate = new Date(`${form.date}T${form.time}:00`)
+    appointmentMessage.value = response.data.message
+    messageClass.value = 'bg-green-100 text-green-700'
 
-    if (selectedDate < now) {
-      availabilityMessage.value = {
-        text: '¡ERROR! No puedes reservar en el pasado.',
-        type: 'error',
-      }
-    } else {
-      // Asumiendo que Laravel valida y devuelve éxito
-      availabilityMessage.value = {
-        text: '¡Horario disponible! Puedes continuar.',
-        type: 'success',
-      }
-    }
+    // Notificar al componente padre que se reserve la cita y luego cerrar
+    emit('appointment-booked')
+    setTimeout(() => {
+      emit('close')
+    }, 1500)
   } catch (error) {
-    availabilityMessage.value = {
-      text: 'Horario no disponible. Conflicto con otra cita.',
-      type: 'error',
+    let msg = 'Error desconocido al reservar.'
+    if (error.response && error.response.data.message) {
+      msg = error.response.data.message
+    } else if (error.response && error.response.data.errors) {
+      msg = Object.values(error.response.data.errors).flat().join(' ')
     }
+    appointmentMessage.value = msg
+    messageClass.value = 'bg-red-100 text-red-700'
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
