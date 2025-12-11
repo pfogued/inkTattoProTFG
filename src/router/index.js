@@ -10,8 +10,8 @@ import TattooArtistDashboard from '../views/TattooArtistDashboard.vue'
 import CalendarView from '../views/CalendarView.vue'
 import DesignGallery from '../views/DesignGallery.vue'
 import ChatView from '../views/ChatView.vue'
-// AÑADIR LA VISTA QUE FALTABA
-import PaymentHistory from '../views/PaymentHistory.vue' // <--- AGREGADO
+import AppointmentManagement from '../views/AppointmentManagement.vue' // <-- NUEVA IMPORTACIÓN
+import PaymentHistory from '../views/PaymentHistory.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,11 +37,10 @@ const router = createRouter({
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: () => import('../views/ForgotPassword.vue'),
-    },
-
-    // ----------------------------------------------------
+    }, // ----------------------------------------------------
     // 2. RUTAS PROTEGIDAS (Usan MainLayout y requieren Auth)
     // ----------------------------------------------------
+
     {
       path: '/app',
       component: MainLayout, // Componente que contiene la Navbar
@@ -61,19 +60,24 @@ const router = createRouter({
           meta: { roles: [2] },
         },
 
-        // AGENDA
-        { path: 'calendar', name: 'Calendar', component: CalendarView, meta: { roles: [1, 2] } },
+        // GESTIÓN DE CITAS (RF-3, RF-5, RF-6) <-- NUEVA RUTA
+        {
+          path: 'appointments',
+          name: 'AppointmentManagement',
+          component: AppointmentManagement,
+          meta: { roles: [1, 2] },
+        }, // AGENDA
 
-        // CHAT Y DISEÑOS
+        { path: 'calendar', name: 'Calendar', component: CalendarView, meta: { roles: [1, 2] } }, // CHAT Y DISEÑOS
+
         { path: 'chat', name: 'ChatView', component: ChatView, meta: { roles: [1, 2] } },
         {
           path: 'designs',
           name: 'DesignGallery',
           component: DesignGallery,
           meta: { roles: [1, 2] },
-        },
+        }, // PAGOS (RF-13)
 
-        // PAGOS (RF-13) <--- AGREGADO EN CHILDREN
         {
           path: 'payments',
           name: 'PaymentHistory',
@@ -81,11 +85,10 @@ const router = createRouter({
           meta: { roles: [1, 2] },
         },
       ],
-    },
-
-    // ----------------------------------------------------
+    }, // ----------------------------------------------------
     // 3. RUTA 404 (Debe ser la última)
     // ----------------------------------------------------
+
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
@@ -96,23 +99,26 @@ const router = createRouter({
 
 // **Guardia Global de Autenticación (RF-2, RF-4)**
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
+  const authStore = useAuthStore() // Inicializar el store si la sesión ya existe
 
-  if (!authStore.isLoggedIn) {
+  if (!authStore.isAuthenticated) {
     authStore.initialize()
   }
 
-  const isAuthenticated = authStore.isLoggedIn
+  const isAuthenticated = authStore.isAuthenticated
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
   const requiredRoles = to.meta.roles
   const userRole = authStore.user?.role_id
 
   if (requiresAuth && !isAuthenticated) {
+    // Si requiere autenticación y no está logueado, redirigir a Login
     next({ name: 'Login' })
   } else if (isAuthenticated && requiredRoles && !requiredRoles.includes(userRole)) {
+    // Si está logueado pero no tiene el rol, redirigir al Dashboard correcto
     const redirectName = userRole === 2 ? 'TattooArtistDashboard' : 'ClientDashboard'
     next({ name: redirectName })
   } else if (isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
+    // Si está logueado e intenta ir a Login/Register, redirigir al Dashboard
     const redirectName = userRole === 2 ? 'TattooArtistDashboard' : 'ClientDashboard'
     next({ name: redirectName })
   } else {
