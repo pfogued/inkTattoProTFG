@@ -35,8 +35,13 @@
       <h2 class="text-xl font-semibold mb-4 border-b pb-2">
         Agenda de Citas {{ authStore.isClient ? 'Confirmadas' : 'Completas' }}
       </h2>
+
+      <!-- Bloques condicionales para la lista de citas -->
       <div v-if="loadingAppointments" class="py-4 text-center text-gray-500">
         Cargando agenda real...
+      </div>
+      <div v-else-if="appointments.length === 0" class="py-4 text-gray-500">
+        No hay citas registradas.
       </div>
       <ul v-else class="divide-y divide-gray-200">
         <li
@@ -60,15 +65,13 @@
               {{ appointment.status.toUpperCase() }}
             </span>
           </div>
+          <!-- RF-7: Redirigir a la vista de gestión donde sí están los botones de Modificar/Cancelar -->
           <button
-            @click="viewDetails(appointment.id)"
+            @click="redirectToAppointments()"
             class="text-indigo-600 hover:text-indigo-800 text-sm"
           >
             Ver/Gestionar (RF-7)
           </button>
-        </li>
-        <li v-if="!appointments.length && !loadingAppointments" class="py-4 text-gray-500">
-          No hay citas registradas.
         </li>
       </ul>
     </div>
@@ -81,21 +84,22 @@
       @close="closeReservationModal"
       @appointment-booked="handleAppointmentBooked"
     />
-    <!-- CORRECCIÓN: Etiqueta autocerrada -->
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { useAuthStore } from '../stores/auth' // Importamos el store para el control de rol
+import { useAuthStore } from '../stores/auth'
 import AppointmentModal from '../components/AppointmentModal.vue'
+import { useRouter } from 'vue-router' // Importamos el router
 
 const authStore = useAuthStore()
+const router = useRouter() // Inicializamos el router
 
 // --- ESTADO DE DATOS ---
 const isModalOpen = ref(false)
-const appointments = ref([]) // Citas reales
+const appointments = ref([])
 const loadingAppointments = ref(true)
 
 // --- ESTADO DE ARTISTAS ---
@@ -127,32 +131,33 @@ async function fetchAppointments() {
   }
 }
 
-// Función para cerrar el modal y refrescar la lista
+// Función para redirigir al cliente a la vista de gestión de citas
+function redirectToAppointments() {
+  // Redirige a la vista donde sí están los botones Modificar/Cancelar implementados
+  router.push({ path: '/app/appointments' })
+}
+
 function closeReservationModal() {
   isModalOpen.value = false
   fetchAppointments()
 }
 
-// Función para manejar el evento de reserva exitosa desde el modal
 function handleAppointmentBooked() {
   isModalOpen.value = false
   fetchAppointments()
 }
 
-function viewDetails(id) {
-  // Alerta de gestión temporal (RF-7)
-  alert(`Ver detalles de la cita #${id}. Aquí se abriría un modal para Modificar/Cancelar (RF-7).`)
-}
-
 function openAvailabilityModal() {
-  // Alerta de gestión temporal (RF-8)
   alert('Funcionalidad de establecer disponibilidad del Tatuador (RF-8).')
 }
 
 // --- UTILITIES ---
 const formatDateTime = (datetime) => {
+  // Si el datetime es válido, usa toLocaleString, sino devuelve cadena vacía
+  if (!datetime) return ''
   return new Date(datetime).toLocaleString()
 }
+
 const getStatusBadgeClass = (status) => {
   switch (status) {
     case 'approved':
