@@ -1,116 +1,255 @@
 <template>
-  <!-- Contenedor principal con altura fija, simulando el área de chat -->
-  <div class="h-[80vh] flex bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-    <!-- 1. Lista de Conversaciones (Panel Izquierdo - Mockup 5) -->
-    <div class="w-1/3 border-r bg-gray-50 flex flex-col">
-      <header class="p-4 border-b">
-        <h2 class="text-xl font-bold text-gray-800">Mensajes (RF-11)</h2>
-        <input
-          type="text"
-          placeholder="Buscar cliente..."
-          class="w-full p-2 mt-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-          v-model="searchQuery"
-        />
-      </header>
+  <div class="p-4 sm:p-8 min-h-[85vh] flex flex-col">
+    <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Mensajería (RF-11)</h1>
 
-      <!-- Listado de Usuarios/Conversaciones -->
-      <div class="flex-grow overflow-y-auto">
-        <div v-if="loadingConversations" class="p-4 text-center text-gray-500">Cargando...</div>
-        <div v-else-if="!filteredConversations.length" class="p-4 text-center text-gray-500">
-          No hay conversaciones.
+    <div
+      class="flex-grow bg-white shadow-2xl rounded-xl overflow-hidden flex border border-gray-200"
+    >
+      <!-- Columna 1: Lista de Contactos -->
+      <div class="w-1/4 border-r border-gray-200 bg-gray-50 flex flex-col">
+        <div class="p-4 border-b">
+          <h2 class="font-semibold text-lg text-indigo-700">Contactos Disponibles</h2>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ authStore.isTattooArtist ? 'Clientes y Tatuadores' : 'Solo Tatuadores' }}
+          </p>
         </div>
 
-        <div
-          v-for="conversation in filteredConversations"
-          :key="conversation.recipientId"
-          @click="selectConversation(conversation)"
-          :class="{
-            'bg-indigo-50 border-l-4 border-indigo-600':
-              conversation.recipientId === selectedRecipientId,
-          }"
-          class="flex items-center p-3 border-b cursor-pointer hover:bg-indigo-50 transition duration-150"
-        >
-          <div
-            class="flex-shrink-0 w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-semibold"
-          >
-            {{ conversation.recipientName.charAt(0) }}
+        <div class="flex-grow overflow-y-auto">
+          <div v-if="contactsLoading" class="p-4 text-center text-gray-500">
+            Cargando usuarios...
           </div>
-          <div class="ml-3 flex-grow">
-            <span class="font-medium text-gray-800">{{ conversation.recipientName }}</span>
+          <div v-else class="space-y-1">
+            <div
+              v-for="contact in filteredContacts"
+              :key="contact.id"
+              @click="openChat(contact)"
+              :class="{
+                'bg-indigo-100 border-l-4 border-indigo-600':
+                  activePartner && activePartner.id === contact.id,
+                'hover:bg-gray-100 border-l-4 border-transparent':
+                  !activePartner || activePartner.id !== contact.id,
+              }"
+              class="p-3 cursor-pointer transition flex justify-between items-center"
+            >
+              <div>
+                <p class="font-medium text-gray-800">{{ contact.name }}</p>
+                <p class="text-xs text-gray-500">
+                  {{ contact.role_id === 2 ? 'Tatuador' : 'Cliente' }}
+                </p>
+              </div>
+              <!-- Indicador de Nuevo Mensaje (Simplificado) -->
+              <span v-if="contact.hasNewMessages" class="h-2 w-2 bg-red-500 rounded-full"></span>
+            </div>
+            <div v-if="filteredContacts.length === 0" class="p-4 text-center text-gray-500 text-sm">
+              No hay otros usuarios para chatear.
+            </div>
           </div>
-          <!-- Indicador de mensaje no leído -->
-          <span
-            v-if="conversation.unreadCount > 0"
-            class="ml-auto w-2 h-2 bg-red-500 rounded-full"
-          ></span>
         </div>
       </div>
-    </div>
 
-    <!-- 2. Área de Chat Activa (Panel Derecho - Mockup 5) -->
-    <div class="w-2/3 flex flex-col">
-      <div v-if="selectedRecipientId" class="flex-grow">
-        <!-- ChatComponent se encarga de la lógica de tiempo real (RF-11) -->
-        <ChatComponent
-          :recipient-id="selectedRecipientId"
-          :recipient-name="selectedRecipientName"
-        />
-      </div>
-      <div v-else class="flex items-center justify-center h-full text-gray-500">
-        Selecciona un cliente o tatuador para empezar una conversación.
+      <!-- Columna 2: Ventana de Chat (RF-12) -->
+      <div class="w-3/4 flex flex-col">
+        <div v-if="!activePartner" class="flex-grow flex items-center justify-center text-gray-500">
+          <p>Selecciona un contacto para iniciar la conversación.</p>
+        </div>
+
+        <div v-else class="flex-grow flex flex-col h-full">
+          <!-- Encabezado del Chat -->
+          <div class="p-4 border-b bg-gray-50">
+            <h2 class="font-semibold text-lg text-gray-900">{{ activePartner.name }}</h2>
+            <p class="text-xs text-gray-500">ID del Chat: {{ chatId || '...' }}</p>
+          </div>
+
+          <!-- Área de Mensajes (Historial - RF-12) -->
+          <div ref="messageContainer" class="flex-grow p-4 space-y-4 overflow-y-auto bg-white">
+            <div v-if="chatLoading" class="text-center py-6 text-gray-500">
+              Cargando mensajes...
+            </div>
+            <div v-else-if="messages.length === 0" class="text-center py-6 text-gray-500">
+              ¡Inicia la conversación!
+            </div>
+            <div
+              v-for="message in messages"
+              :key="message.id"
+              :class="
+                message.sender_id === authStore.user.id ? 'flex justify-end' : 'flex justify-start'
+              "
+            >
+              <div
+                :class="
+                  message.sender_id === authStore.user.id
+                    ? 'bg-indigo-600 text-white rounded-tr-none'
+                    : 'bg-gray-200 text-gray-800 rounded-tl-none'
+                "
+                class="max-w-xs lg:max-w-md p-3 rounded-xl shadow-md"
+              >
+                <p
+                  class="text-xs font-semibold mb-1"
+                  v-if="message.sender_id !== authStore.user.id && message.sender"
+                >
+                  {{ message.sender.name }}
+                </p>
+                <p class="text-sm">{{ message.content }}</p>
+                <span
+                  class="block text-right mt-1"
+                  :class="
+                    message.sender_id === authStore.user.id
+                      ? 'text-indigo-200 text-xs'
+                      : 'text-gray-500 text-xs'
+                  "
+                >
+                  {{ formatTime(message.created_at) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulario de Envío de Mensajes -->
+          <div class="p-4 border-t bg-gray-50">
+            <form @submit.prevent="sendMessage" class="flex space-x-3">
+              <input
+                type="text"
+                v-model="newMessageContent"
+                ref="messageInput"
+                placeholder="Escribe tu mensaje..."
+                required
+                :disabled="chatLoading || sendingMessage"
+                class="flex-grow px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <!-- La etiqueta es autocerrada -->
+
+              <button
+                type="submit"
+                :disabled="!newMessageContent.trim() || sendingMessage || !chatId"
+                class="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50"
+              >
+                <span v-if="sendingMessage">Enviando...</span>
+                <span v-else>Enviar</span>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import axios from 'axios'
-import ChatComponent from '../components/ChatComponent.vue'
+import { useAuthStore } from '../stores/auth'
 
-// Estado
-const loadingConversations = ref(false)
-const searchQuery = ref('')
-const selectedRecipientId = ref(null)
-const selectedRecipientName = ref('')
+const authStore = useAuthStore()
 
-// Datos simulados (Reemplazar con llamada a la API)
-const conversations = ref([
-  { recipientId: 101, recipientName: 'Juan Pérez (Cliente)', unreadCount: 2 },
-  { recipientId: 102, recipientName: 'Martina López (Cliente)', unreadCount: 0 },
-  { recipientId: 201, recipientName: 'Ana García (Tatuador)', unreadCount: 0 },
-])
+// Estado de la lista de contactos
+const contacts = ref([])
+const contactsLoading = ref(true)
 
-// Computed para filtrar las conversaciones
-const filteredConversations = computed(() => {
-  const query = searchQuery.value.toLowerCase()
-  return conversations.value.filter((c) => c.recipientName.toLowerCase().includes(query))
+// Estado del chat activo
+const activePartner = ref(null)
+const chatId = ref(null)
+const messages = ref([])
+const chatLoading = ref(false)
+
+// Estado del formulario de mensaje
+const newMessageContent = ref('')
+const sendingMessage = ref(false)
+const messageContainer = ref(null)
+const messageInput = ref(null)
+
+// Filtra la lista de contactos para no incluir al usuario actual
+const filteredContacts = computed(() => {
+  return contacts.value.filter((c) => c.id !== authStore.user.id)
 })
 
-// Métodos
-function selectConversation(conversation) {
-  selectedRecipientId.value = conversation.recipientId
-  selectedRecipientName.value = conversation.recipientName
+// Desplaza el contenedor de mensajes al final
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messageContainer.value) {
+      messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+    }
+  })
 }
 
-async function fetchConversations() {
-  // En un entorno real, Laravel devolvería las conversaciones del usuario actual.
-  // const response = await axios.get('/conversations');
-
-  // Simulación: Seleccionar la primera conversación por defecto al cargar
-  if (conversations.value.length) {
-    selectConversation(conversations.value[0])
+// 1. Cargar todos los usuarios como posibles contactos
+const fetchContacts = async () => {
+  contactsLoading.value = true
+  try {
+    const usersResponse = await axios.get('/users')
+    contacts.value = usersResponse.data.users
+  } catch (error) {
+    console.error('Error al cargar contactos:', error)
+  } finally {
+    contactsLoading.value = false
   }
 }
 
+// 2. Abrir un chat con un usuario
+const openChat = async (partner) => {
+  activePartner.value = partner
+  chatLoading.value = true
+  messages.value = []
+  chatId.value = null
+
+  try {
+    const response = await axios.get(`/chat/${partner.id}`)
+
+    if (response.data.chat_id) {
+      chatId.value = response.data.chat_id
+      messages.value = response.data.messages
+
+      scrollToBottom()
+
+      nextTick(() => {
+        if (messageInput.value) {
+          messageInput.value.focus()
+        }
+      })
+    } else {
+      console.error('ERROR CHAT: La API no devolvió un chat_id válido.')
+    }
+  } catch (error) {
+    console.error('Error al cargar chat:', error.response?.data?.message || error)
+    alert(`Error al iniciar chat con ${partner.name}. Revisa la consola.`)
+  } finally {
+    chatLoading.value = false
+  }
+}
+
+// 3. Enviar un mensaje
+const sendMessage = async () => {
+  if (!newMessageContent.value.trim() || !chatId.value) {
+    return
+  }
+
+  sendingMessage.value = true
+  const content = newMessageContent.value
+  newMessageContent.value = ''
+
+  try {
+    const response = await axios.post(`/chat/${chatId.value}`, { content })
+
+    messages.value.push(response.data.message_sent)
+
+    scrollToBottom()
+  } catch (error) {
+    console.error('Error al enviar mensaje:', error.response?.data?.message || error)
+    alert('No se pudo enviar el mensaje.')
+    newMessageContent.value = content
+  } finally {
+    sendingMessage.value = false
+  }
+}
+
+// Utilidad de formato de hora
+const formatTime = (isoString) => {
+  if (!isoString) return ''
+  return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 onMounted(() => {
-  fetchConversations()
+  if (authStore.isAuthenticated) {
+    fetchContacts()
+  }
 })
 </script>
-
-<style scoped>
-/* Altura fija para el contenedor del chat, menos el navbar/footer */
-.h-\[80vh\] {
-  height: 80vh;
-}
-</style>
