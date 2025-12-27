@@ -97,6 +97,11 @@ const router = createRouter({
           component: PaymentHistory,
           meta: { roles: [1, 2] },
         },
+        {
+          path: '/social-callback',
+          name: 'social-callback',
+          component: () => import('../views/Auth/SocialCallback.vue'),
+        },
       ],
     },
 

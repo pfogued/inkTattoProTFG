@@ -95,14 +95,13 @@
           {{ error }}
         </p>
 
-        <!-- Botón de Enviar (V-IF/V-ELSE CORREGIDO) -->
+        <!-- Botón de Enviar -->
         <div>
           <button
             type="submit"
             :disabled="isLoading"
             class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 transition duration-150 disabled:opacity-50"
           >
-            <!-- CORRECCIÓN CRÍTICA: Pegar v-if y v-else para evitar el error de compilación -->
             <span v-if="isLoading">Registrando...</span><span v-else> Registrar Cuenta </span>
           </button>
         </div>
@@ -115,6 +114,9 @@
           </router-link>
         </div>
       </form>
+
+      <!-- Botones de Registro Social -->
+      <SocialButtons />
     </div>
   </div>
 </template>
@@ -123,6 +125,8 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+// CORRECCIÓN: Uso de ruta relativa para evitar errores de alias en Vite
+import SocialButtons from '../components/SocialButtons.vue'
 
 const router = useRouter()
 
@@ -150,8 +154,7 @@ async function submitRegister() {
   }
 
   try {
-    // 🎯 SOLUCIÓN CRÍTICA: Usar la URL ABSOLUTA para forzar el envío POST
-    // Esto resuelve el error 405 (Method Not Allowed)
+    // Usar la URL ABSOLUTA para evitar problemas de redirección en desarrollo
     await axios.post('http://localhost:8000/api/register', {
       name: form.name,
       email: form.email,
@@ -163,19 +166,16 @@ async function submitRegister() {
     alert('Registro exitoso. ¡Ahora puedes iniciar sesión!')
     router.push({ name: 'Login' })
   } catch (err) {
-    // Manejo de errores 422 (Validación) y 500
     let errorMessage = 'Error al registrar. Verifica tus datos.'
     if (err.response) {
       if (err.response.data.errors) {
-        // Capturar errores de validación 422
         const errors = err.response.data.errors
         errorMessage = Object.values(errors).flat().join(' ')
       } else if (err.response.data.message) {
         errorMessage = err.response.data.message
       }
     } else {
-      // Fallo de red o servidor 500
-      errorMessage = 'Fallo al conectar con el servidor API. Revisa tu consola.'
+      errorMessage = 'Fallo al conectar con el servidor API.'
     }
 
     error.value = errorMessage
