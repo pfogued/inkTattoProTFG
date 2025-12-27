@@ -1,5 +1,27 @@
 <template>
   <div class="p-8">
+    <!-- Botón de Regreso -->
+    <button
+      @click="goToDashboard"
+      class="text-gray-600 hover:text-indigo-600 mb-6 flex items-center transition"
+    >
+      <svg
+        class="w-5 h-5 mr-1"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        ></path>
+      </svg>
+      Volver al Dashboard
+    </button>
+
     <h1 class="text-3xl font-extrabold mb-6">Agenda y Gestión de Citas</h1>
 
     <!-- LÓGICA DE CONTROL POR ROL -->
@@ -36,7 +58,6 @@
         Agenda de Citas {{ authStore.isClient ? 'Confirmadas' : 'Completas' }}
       </h2>
 
-      <!-- Bloques condicionales para la lista de citas -->
       <div v-if="loadingAppointments" class="py-4 text-center text-gray-500">
         Cargando agenda real...
       </div>
@@ -92,10 +113,10 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import AppointmentModal from '../components/AppointmentModal.vue'
-import { useRouter } from 'vue-router' // Importamos el router
+import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
-const router = useRouter() // Inicializamos el router
+const router = useRouter()
 
 // --- ESTADO DE DATOS ---
 const isModalOpen = ref(false)
@@ -105,6 +126,17 @@ const loadingAppointments = ref(true)
 // --- ESTADO DE ARTISTAS ---
 const artistsLoading = ref(true)
 const availableTattooArtists = ref([])
+
+// --- FUNCIÓN DE REDIRECCIÓN DINÁMICA (CORREGIDA) ---
+const goToDashboard = () => {
+  if (authStore.user?.role_id === 1) {
+    router.push('/app/client/dashboard')
+  } else if (authStore.user?.role_id === 2) {
+    router.push('/app/artist/dashboard')
+  } else {
+    router.push('/app/dashboard')
+  }
+}
 
 // --- FUNCIONES DE CARGA DE DATOS ---
 async function fetchTattooArtists() {
@@ -131,9 +163,7 @@ async function fetchAppointments() {
   }
 }
 
-// Función para redirigir al cliente a la vista de gestión de citas
 function redirectToAppointments() {
-  // Redirige a la vista donde sí están los botones Modificar/Cancelar implementados
   router.push({ path: '/app/appointments' })
 }
 
@@ -153,7 +183,6 @@ function openAvailabilityModal() {
 
 // --- UTILITIES ---
 const formatDateTime = (datetime) => {
-  // Si el datetime es válido, usa toLocaleString, sino devuelve cadena vacía
   if (!datetime) return ''
   return new Date(datetime).toLocaleString()
 }

@@ -1,5 +1,27 @@
 <template>
   <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Botón de Regreso -->
+    <button
+      @click="goToDashboard"
+      class="text-gray-600 hover:text-indigo-600 mb-6 flex items-center transition"
+    >
+      <svg
+        class="w-5 h-5 mr-1"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        ></path>
+      </svg>
+      Volver al Dashboard
+    </button>
+
     <div class="bg-white shadow-xl rounded-xl p-6 mb-8">
       <h1 class="text-3xl font-extrabold text-gray-900 mb-2">
         {{ authStore.isTattooArtist ? 'Agenda de Tatuador' : 'Gestión de Citas' }} (RF-7)
@@ -159,6 +181,17 @@ const appointments = ref([])
 const listLoading = ref(true)
 const isModificationModalOpen = ref(false)
 const selectedAppointment = ref(null)
+
+// --- FUNCIÓN DE REDIRECCIÓN DINÁMICA (CORREGIDA) ---
+const goToDashboard = () => {
+  if (authStore.user?.role_id === 1) {
+    router.push('/app/client/dashboard')
+  } else if (authStore.user?.role_id === 2) {
+    router.push('/app/artist/dashboard')
+  } else {
+    router.push('/app/dashboard')
+  }
+}
 
 const fetchAppointments = async () => {
   listLoading.value = true

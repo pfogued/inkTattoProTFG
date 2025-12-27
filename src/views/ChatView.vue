@@ -1,5 +1,27 @@
 <template>
   <div class="p-4 sm:p-8 min-h-[85vh] flex flex-col">
+    <!-- Botón de Regreso -->
+    <button
+      @click="goToDashboard"
+      class="text-gray-600 hover:text-indigo-600 mb-6 flex items-center transition"
+    >
+      <svg
+        class="w-5 h-5 mr-1"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        ></path>
+      </svg>
+      Volver al Dashboard
+    </button>
+
     <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Mensajería (RF-11)</h1>
 
     <div
@@ -116,8 +138,6 @@
                 :disabled="chatLoading || sendingMessage"
                 class="flex-grow px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
               />
-              <!-- La etiqueta es autocerrada -->
-
               <button
                 type="submit"
                 :disabled="!newMessageContent.trim() || sendingMessage || !chatId"
@@ -138,8 +158,21 @@
 import { ref, onMounted, nextTick, computed } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
+import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
+const router = useRouter()
+
+// --- FUNCIÓN DE REDIRECCIÓN DINÁMICA (CORREGIDA) ---
+const goToDashboard = () => {
+  if (authStore.user?.role_id === 1) {
+    router.push('/app/client/dashboard')
+  } else if (authStore.user?.role_id === 2) {
+    router.push('/app/artist/dashboard')
+  } else {
+    router.push('/app/dashboard')
+  }
+}
 
 // Estado de la lista de contactos
 const contacts = ref([])
@@ -157,12 +190,10 @@ const sendingMessage = ref(false)
 const messageContainer = ref(null)
 const messageInput = ref(null)
 
-// Filtra la lista de contactos para no incluir al usuario actual
 const filteredContacts = computed(() => {
   return contacts.value.filter((c) => c.id !== authStore.user.id)
 })
 
-// Desplaza el contenedor de mensajes al final
 const scrollToBottom = () => {
   nextTick(() => {
     if (messageContainer.value) {
@@ -171,7 +202,6 @@ const scrollToBottom = () => {
   })
 }
 
-// 1. Cargar todos los usuarios como posibles contactos
 const fetchContacts = async () => {
   contactsLoading.value = true
   try {
@@ -184,7 +214,6 @@ const fetchContacts = async () => {
   }
 }
 
-// 2. Abrir un chat con un usuario
 const openChat = async (partner) => {
   activePartner.value = partner
   chatLoading.value = true
@@ -216,7 +245,6 @@ const openChat = async (partner) => {
   }
 }
 
-// 3. Enviar un mensaje
 const sendMessage = async () => {
   if (!newMessageContent.value.trim() || !chatId.value) {
     return
@@ -241,7 +269,6 @@ const sendMessage = async () => {
   }
 }
 
-// Utilidad de formato de hora
 const formatTime = (isoString) => {
   if (!isoString) return ''
   return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '../stores/auth' // Importamos el Store de Pinia
-import MainLayout from '../layouts/MainLayout.vue' // Importamos el Layout Principal
+import { useAuthStore } from '../stores/auth'
+import MainLayout from '../layouts/MainLayout.vue'
 
-// Vistas principales (Usando rutas relativas para evitar problemas de alias)
+// Importaciones de Vistas
+import LandingView from '../views/LandingView.vue'
+import ArtistasView from '../views/ArtistasView.vue' // <-- AÑADIDA ESTA LÍNEA
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import ClientDashboard from '../views/ClientDashboard.vue'
@@ -10,18 +12,24 @@ import TattooArtistDashboard from '../views/TattooArtistDashboard.vue'
 import CalendarView from '../views/CalendarView.vue'
 import DesignGallery from '../views/DesignGallery.vue'
 import ChatView from '../views/ChatView.vue'
-import AppointmentManagement from '../views/AppointmentManagement.vue' // <-- NUEVA IMPORTACIÓN
+import AppointmentManagement from '../views/AppointmentManagement.vue'
 import PaymentHistory from '../views/PaymentHistory.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     // ----------------------------------------------------
-    // 1. RUTAS PÚBLICAS (Sin Layout, sin autenticación)
+    // 1. RUTAS PÚBLICAS
     // ----------------------------------------------------
     {
       path: '/',
-      redirect: '/login', // Redirigir al Login por defecto
+      name: 'home',
+      component: LandingView,
+    },
+    {
+      path: '/artistas', // <-- RUTA AÑADIDA PARA QUE FUNCIONE EL BOTÓN
+      name: 'Artistas',
+      component: ArtistasView,
     },
     {
       path: '/login',
@@ -37,16 +45,16 @@ const router = createRouter({
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: () => import('../views/ForgotPassword.vue'),
-    }, // ----------------------------------------------------
-    // 2. RUTAS PROTEGIDAS (Usan MainLayout y requieren Auth)
-    // ----------------------------------------------------
+    },
 
+    // ----------------------------------------------------
+    // 2. RUTAS PROTEGIDAS
+    // ----------------------------------------------------
     {
       path: '/app',
-      component: MainLayout, // Componente que contiene la Navbar
+      component: MainLayout,
       meta: { requiresAuth: true },
       children: [
-        // DASHBOARDS
         {
           path: 'client/dashboard',
           name: 'ClientDashboard',
@@ -59,25 +67,30 @@ const router = createRouter({
           component: TattooArtistDashboard,
           meta: { roles: [2] },
         },
-
-        // GESTIÓN DE CITAS (RF-3, RF-5, RF-6) <-- NUEVA RUTA
         {
           path: 'appointments',
           name: 'AppointmentManagement',
           component: AppointmentManagement,
           meta: { roles: [1, 2] },
-        }, // AGENDA
-
-        { path: 'calendar', name: 'Calendar', component: CalendarView, meta: { roles: [1, 2] } }, // CHAT Y DISEÑOS
-
-        { path: 'chat', name: 'ChatView', component: ChatView, meta: { roles: [1, 2] } },
+        },
+        {
+          path: 'calendar',
+          name: 'Calendar',
+          component: CalendarView,
+          meta: { roles: [1, 2] },
+        },
+        {
+          path: 'chat',
+          name: 'ChatView',
+          component: ChatView,
+          meta: { roles: [1, 2] },
+        },
         {
           path: 'designs',
           name: 'DesignGallery',
           component: DesignGallery,
           meta: { roles: [1, 2] },
-        }, // PAGOS (RF-13)
-
+        },
         {
           path: 'payments',
           name: 'PaymentHistory',
@@ -85,10 +98,11 @@ const router = createRouter({
           meta: { roles: [1, 2] },
         },
       ],
-    }, // ----------------------------------------------------
-    // 3. RUTA 404 (Debe ser la última)
-    // ----------------------------------------------------
+    },
 
+    // ----------------------------------------------------
+    // 3. RUTA 404
+    // ----------------------------------------------------
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
@@ -97,9 +111,9 @@ const router = createRouter({
   ],
 })
 
-// **Guardia Global de Autenticación (RF-2, RF-4)**
+// Guardia Global de Autenticación (Mantengo tu lógica intacta)
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore() // Inicializar el store si la sesión ya existe
+  const authStore = useAuthStore()
 
   if (!authStore.isAuthenticated) {
     authStore.initialize()
@@ -111,14 +125,11 @@ router.beforeEach((to, from, next) => {
   const userRole = authStore.user?.role_id
 
   if (requiresAuth && !isAuthenticated) {
-    // Si requiere autenticación y no está logueado, redirigir a Login
     next({ name: 'Login' })
   } else if (isAuthenticated && requiredRoles && !requiredRoles.includes(userRole)) {
-    // Si está logueado pero no tiene el rol, redirigir al Dashboard correcto
     const redirectName = userRole === 2 ? 'TattooArtistDashboard' : 'ClientDashboard'
     next({ name: redirectName })
   } else if (isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
-    // Si está logueado e intenta ir a Login/Register, redirigir al Dashboard
     const redirectName = userRole === 2 ? 'TattooArtistDashboard' : 'ClientDashboard'
     next({ name: redirectName })
   } else {

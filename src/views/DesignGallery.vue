@@ -1,5 +1,27 @@
 <template>
   <div class="p-4 space-y-8">
+    <!-- Botón de Regreso -->
+    <button
+      @click="goToDashboard"
+      class="text-gray-600 hover:text-indigo-600 mb-6 flex items-center transition"
+    >
+      <svg
+        class="w-5 h-5 mr-1"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        ></path>
+      </svg>
+      Volver al Dashboard
+    </button>
+
     <!-- Encabezado y Acciones -->
     <header class="flex justify-between items-center pb-4 border-b">
       <h1 class="text-3xl font-extrabold text-gray-900">Galería de Diseños (RF-9, RF-10)</h1>
@@ -96,7 +118,6 @@
       @close="isUploadModalOpen = false"
       @design-uploaded="fetchDesigns"
     />
-    <!-- CORRECCIÓN: Autocierre de la etiqueta -->
     <AnnotationEditor
       :design="selectedDesign"
       :isOpen="isAnnotationModalOpen"
@@ -122,6 +143,19 @@ const loading = ref(true)
 const isUploadModalOpen = ref(false)
 const isAnnotationModalOpen = ref(false)
 const selectedDesign = ref(null)
+
+// --- FUNCIÓN DE REDIRECCIÓN DINÁMICA (CORREGIDA) ---
+const goToDashboard = () => {
+  if (authStore.user?.role_id === 1) {
+    // Cliente
+    router.push('/app/client/dashboard')
+  } else if (authStore.user?.role_id === 2) {
+    // Tatuador (Artist)
+    router.push('/app/artist/dashboard')
+  } else {
+    router.push('/app/dashboard')
+  }
+}
 
 // CU-07: Ver diseños (Integración con Laravel DesignController index)
 async function fetchDesigns() {
@@ -160,8 +194,7 @@ function handleDesignUpdate(updatedDesign) {
   if (index !== -1) {
     // Reemplaza el objeto antiguo por el nuevo para refrescar la lista
     designs.value[index] = updatedDesign
-  }
-  // Asegura que el modal de detalle también tenga la versión más reciente
+  } // Asegura que el modal de detalle también tenga la versión más reciente
   selectedDesign.value = updatedDesign
 }
 
