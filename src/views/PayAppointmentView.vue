@@ -1,24 +1,25 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { loadStripe } from '@stripe/stripe-js'
-import { useRouter } from 'vue-router' // Importamos el router para redirigir tras el pago
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 
-const props = defineProps({
-  amount: { type: Number, required: true },
-  appointmentId: { type: Number, required: true },
-})
-
 const router = useRouter()
+const route = useRoute()
+
+// Variables de estado
+const appointmentId = route.params.id
+const amount = ref(50)
+const processing = ref(false)
+const errorMessage = ref('')
+const cardElement = ref(null)
+
+let stripe = null
+let elements = null
+
 const stripePromise = loadStripe(
   'pk_test_51SjM6dFEByp3k6AXVE6FYv7JTBVTdEySiVykzQ3HILh7XpyPmAUKBvH1VAEipQhtmUfpLg3vCwcTiC3LFGDRLqTQ00G8EJ2DTj',
 )
-
-const cardElement = ref(null)
-let stripe = null
-let elements = null
-const processing = ref(false)
-const errorMessage = ref('')
 
 onMounted(async () => {
   stripe = await stripePromise
@@ -37,19 +38,20 @@ onMounted(async () => {
 })
 
 const handlePayment = async () => {
-  processing.value = true // Corregido: .value en lugar de .ref
+  processing.value = true
   errorMessage.value = ''
 
   try {
     // 1. Obtener el clientSecret desde Laravel
+    // ELIMINADO EL '/api' inicial porque ya está en la baseURL del main.js
     const {
       data: { clientSecret },
-    } = await axios.post('/api/payments/create-intent', {
-      amount: props.amount,
-      appointment_id: props.appointmentId,
+    } = await axios.post('/payments/create-intent', {
+      amount: amount.value,
+      appointment_id: appointmentId,
     })
 
-    // 2. Confirmar el pago en los servidores de Stripe
+    // 2. Confirmar el pago con Stripe
     const result = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
         card: cardElement.value,
@@ -60,23 +62,21 @@ const handlePayment = async () => {
     if (result.error) {
       errorMessage.value = result.error.message
     } else if (result.paymentIntent.status === 'succeeded') {
-      // 3. ¡IMPORTANTE! Guardar el pago en tu base de datos local
-      // Esto hará que aparezca en el historial del cliente y del tatuador
-      await axios.post('/api/payments', {
-        appointment_id: props.appointmentId,
-        amount: props.amount,
-        stripe_id: result.paymentIntent.id, // ID de transacción de Stripe
+      // 3. Guardar en la DB local
+      // ELIMINADO EL '/api' inicial también aquí
+      await axios.post('/payments', {
+        appointment_id: appointmentId,
+        amount: amount.value,
+        stripe_id: result.paymentIntent.id,
         status: 'completed',
       })
 
       alert('¡Pago de prueba realizado con éxito!')
-
-      // Redirigir al historial para ver el pago reflejado
-      router.push('/payments')
+      router.push('/app/payments')
     }
   } catch (error) {
-    errorMessage.value = 'Error al procesar el pago o conectar con el servidor.'
-    console.error(error)
+    errorMessage.value = 'Error al conectar con el servidor.'
+    console.error('Detalle del error:', error.response || error)
   } finally {
     processing.value = false
   }
@@ -84,12 +84,16 @@ const handlePayment = async () => {
 </script>
 
 <template>
-  <div class="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md border border-gray-200">
+  <div class="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md border border-gray-200 mt-10">
+    <button @click="router.back()" class="text-sm text-indigo-600 mb-4 hover:underline">
+      ← Volver
+    </button>
+
     <h2 class="text-xl font-bold mb-4 text-gray-800">Finalizar Pago</h2>
 
     <div class="mb-6 p-4 bg-indigo-50 rounded-lg">
-      <p class="text-sm text-indigo-700">Resumen del servicio</p>
-      <p class="text-2xl font-bold text-indigo-900">{{ props.amount }}€</p>
+      <p class="text-sm text-indigo-700">Resumen del servicio (Cita #{{ appointmentId }})</p>
+      <p class="text-2xl font-bold text-indigo-900">{{ amount }}€</p>
     </div>
 
     <div class="mb-4">
@@ -108,7 +112,7 @@ const handlePayment = async () => {
     <button
       @click="handlePayment"
       :disabled="processing"
-      class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg active:transform active:scale-95"
+      class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg active:scale-95 transform"
     >
       <span v-if="processing" class="flex items-center justify-center">
         <svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
@@ -128,14 +132,12 @@ const handlePayment = async () => {
         </svg>
         Procesando...
       </span>
-      <span v-else>Confirmar y Pagar</span>
+      <span v-else>Confirmar y Pagar {{ amount }}€</span>
     </button>
 
-    <div class="mt-6 border-t pt-4">
-      <p class="text-xs text-gray-500 text-center leading-relaxed">
-        🔒 Pago seguro procesado por Stripe.<br />
-        Usa la tarjeta <span class="font-mono font-bold">4242 4242 4242 4242</span> para el entorno
-        de pruebas.
+    <div class="mt-6 border-t pt-4 text-center">
+      <p class="text-xs text-gray-400">
+        Usa la tarjeta <span class="font-bold">4242 4242 4242 4242</span> para pruebas.
       </p>
     </div>
   </div>
