@@ -21,7 +21,8 @@ const router = createRouter({
     // ----------------------------------------------------
     {
       path: '/',
-      redirect: '/login', // Redirigir al Login por defecto
+      name: 'Home',
+      component: () => import('../views/HomeView.vue'),
     },
     {
       path: '/login',
