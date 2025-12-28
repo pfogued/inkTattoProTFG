@@ -15,53 +15,36 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isTattooArtist: (state) => state.user && state.user.role_id === 2,
     isClient: (state) => state.user && state.user.role_id === 1,
-    // Getter para el guardia de navegación
     isLoggedIn: (state) => !!state.token,
   },
 
   actions: {
-    // 🎯 Acción: Intenta iniciar sesión (RF-2)
+    // 🎯 Acción: Intenta iniciar sesión manual (RF-2) - SIN CAMBIOS
     async login(credentials) {
       this.loading = true
       this.error = null
       try {
-        // La petición POST es exitosa (Status 200)
         const response = await axios.post('/login', credentials)
-
         this.token = response.data.token
         this.user = response.data.user
         this.isAuthenticated = true
 
-        // 1. Guardar en almacenamiento local (CRÍTICO)
         localStorage.setItem('token', this.token)
         localStorage.setItem('user', JSON.stringify(this.user))
-
-        // 2. Configurar Axios para enviar el token
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
 
         this.loading = false
-
-        // 3. Redirigir al Dashboard basado en el rol (CRÍTICO)
         const redirectName = this.user.role_id === 2 ? 'TattooArtistDashboard' : 'ClientDashboard'
         router.push({ name: redirectName })
       } catch (err) {
         this.loading = false
-        this.error = 'Credenciales incorrectas.'
-        if (err.response && err.response.data.message) {
-          this.error = err.response.data.message
-        }
-        // Limpiar token local si hubo error, por si acaso
-        this.token = null
-        this.user = null
-        this.isAuthenticated = false
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-
+        this.error = err.response?.data?.message || 'Credenciales incorrectas.'
+        this.logout()
         throw err
       }
     },
 
-    // 🎯 Acción: Cerrar sesión (RF-4)
+    // 🎯 Acción: Cerrar sesión (RF-4) - SIN CAMBIOS
     async logout() {
       try {
         await axios.post('/logout')
@@ -78,11 +61,25 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // 🎯 Acción: Inicializar al cargar la app
-    initialize() {
+    // 🎯 Acción: Inicializar al cargar la app (MEJORADA PARA GOOGLE)
+    async initialize() {
       if (this.token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
-        this.isAuthenticated = true
+
+        // Si tenemos token pero NO tenemos los datos del usuario (caso de Google)
+        // los pedimos al servidor para que el router sepa el rol
+        if (!this.user) {
+          try {
+            const response = await axios.get('http://localhost:8000/api/user')
+            this.user = response.data
+            localStorage.setItem('user', JSON.stringify(this.user))
+            this.isAuthenticated = true
+          } catch (e) {
+            this.logout()
+          }
+        } else {
+          this.isAuthenticated = true
+        }
       } else {
         this.isAuthenticated = false
       }

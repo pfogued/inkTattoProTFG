@@ -38,7 +38,14 @@ const router = createRouter({
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: () => import('../views/ForgotPassword.vue'),
-    }, // ----------------------------------------------------
+    },
+    {
+      path: '/social-callback',
+      name: 'social-callback',
+      component: () => import('../views/SocialCallback.vue'),
+    },
+
+    // ----------------------------------------------------
     // 2. RUTAS PROTEGIDAS (Usan MainLayout y requieren Auth)
     // ----------------------------------------------------
 
