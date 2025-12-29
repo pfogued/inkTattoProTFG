@@ -1,14 +1,36 @@
 <template>
   <div class="p-4 space-y-8">
-    <!-- Encabezado y Acciones -->
+    <div class="mb-2">
+      <button
+        @click="router.back()"
+        class="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-bold group"
+      >
+        <div class="bg-indigo-100 group-hover:bg-indigo-200 p-2 rounded-lg mr-3 transition-colors">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+        </div>
+        Volver al Panel Principal
+      </button>
+    </div>
     <header class="flex justify-between items-center pb-4 border-b">
       <h1 class="text-3xl font-extrabold text-gray-900">Galería de Diseños (RF-9, RF-10)</h1>
 
-      <!-- Botón de Subida (Solo para Tatuadores, RF-9) -->
       <button
         v-if="authStore.isTattooArtist"
         @click="openUploadModal"
-        class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+        class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold shadow-md"
       >
         <svg
           class="w-5 h-5 mr-2"
@@ -28,27 +50,31 @@
       </button>
     </header>
 
-    <!-- Subtítulo de la Galería -->
     <p class="text-gray-600">
       Diseños asociados a tu próxima cita o trabajos previos. Haz clic para ver comentarios o
       editar.
     </p>
 
-    <!-- Grid de Diseños (Integración de la API) -->
-    <div v-if="loading" class="text-center p-10">Cargando diseños...</div>
+    <div v-if="loading" class="text-center p-10">
+      <div
+        class="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mb-2"
+      ></div>
+      <p class="text-gray-500">Cargando diseños...</p>
+    </div>
+
     <div
       v-else-if="!designs.length"
       class="text-center p-10 text-gray-500 border border-dashed rounded-xl"
     >
       Aún no hay diseños en la galería.
     </div>
+
     <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-6">
       <div
         v-for="design in designs"
         :key="design.id"
-        class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200"
+        class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 transition hover:shadow-xl"
       >
-        <!-- Miniatura del Diseño -->
         <div
           @click="viewDesign(design)"
           class="h-48 w-full bg-gray-100 flex items-center justify-center cursor-pointer hover:opacity-90 transition"
@@ -61,7 +87,6 @@
           />
         </div>
 
-        <!-- Información y Acciones -->
         <div class="p-4">
           <h3 class="font-semibold text-gray-800 truncate">{{ design.title }}</h3>
           <p class="text-xs text-gray-500 mt-1">
@@ -69,7 +94,6 @@
           </p>
 
           <div class="mt-3 flex justify-between text-sm">
-            <!-- RF-10: Anotaciones (Cliente) -->
             <button
               @click="editAnnotation(design)"
               class="text-indigo-600 hover:text-indigo-800 font-medium"
@@ -77,7 +101,6 @@
               Anotar / Ver Detalle
             </button>
 
-            <!-- Opción de eliminar (solo Tatuador que subió el diseño) -->
             <button
               v-if="authStore.isTattooArtist && design.tattoo_artist_id === authStore.user.id"
               @click="deleteDesign(design.id)"
@@ -90,13 +113,11 @@
       </div>
     </div>
 
-    <!-- Modales -->
     <UploadDesignModal
       :isOpen="isUploadModalOpen"
       @close="isUploadModalOpen = false"
       @design-uploaded="fetchDesigns"
     />
-    <!-- CORRECCIÓN: Autocierre de la etiqueta -->
     <AnnotationEditor
       :design="selectedDesign"
       :isOpen="isAnnotationModalOpen"
@@ -115,7 +136,7 @@ import AnnotationEditor from '../components/AnnotationEditor.vue'
 import UploadDesignModal from '../components/UploadDesignModal.vue'
 
 const authStore = useAuthStore()
-const router = useRouter()
+const router = useRouter() // Ya lo tenías importado, ahora lo usamos en el template
 
 const designs = ref([])
 const loading = ref(true)
@@ -123,7 +144,6 @@ const isUploadModalOpen = ref(false)
 const isAnnotationModalOpen = ref(false)
 const selectedDesign = ref(null)
 
-// CU-07: Ver diseños (Integración con Laravel DesignController index)
 async function fetchDesigns() {
   loading.value = true
   try {
@@ -137,43 +157,35 @@ async function fetchDesigns() {
   }
 }
 
-// RF-9: Lógica de subida (solo para Tatuadores)
 function openUploadModal() {
   isUploadModalOpen.value = true
 }
 
-// RF-10: Añadir anotaciones (Cliente) / Ver detalle
 function editAnnotation(design) {
   selectedDesign.value = design
   isAnnotationModalOpen.value = true
 }
 
-// CU-08: Ver diseño (Mismo modal que Anotación)
 function viewDesign(design) {
-  editAnnotation(design) // Abre el modal de detalle/edición
+  editAnnotation(design)
 }
 
-// NUEVO: Maneja la actualización de una anotación desde el modal
 function handleDesignUpdate(updatedDesign) {
-  // Encuentra el índice del diseño actualizado
   const index = designs.value.findIndex((d) => d.id === updatedDesign.id)
   if (index !== -1) {
-    // Reemplaza el objeto antiguo por el nuevo para refrescar la lista
     designs.value[index] = updatedDesign
   }
-  // Asegura que el modal de detalle también tenga la versión más reciente
   selectedDesign.value = updatedDesign
 }
 
-// Lógica para eliminar diseño (solo Tatuador)
 async function deleteDesign(id) {
   if (confirm('¿Estás seguro de eliminar este diseño? Esta acción no se puede deshacer.')) {
     try {
       await axios.delete(`/designs/${id}`)
       alert('Diseño eliminado con éxito.')
-      fetchDesigns() // Recargar lista
+      fetchDesigns()
     } catch (error) {
-      alert('Error al eliminar el diseño. Revisa si eres el Tatuador que lo subió.')
+      alert('Error al eliminar el diseño.')
     }
   }
 }
