@@ -1,10 +1,31 @@
 <template>
   <div class="p-8">
+    <div class="mb-6">
+      <button
+        @click="router.back()"
+        class="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-bold group"
+      >
+        <div class="bg-indigo-100 group-hover:bg-indigo-200 p-2 rounded-lg mr-3 transition-colors">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+        </div>
+        Volver al Panel Principal
+      </button>
+    </div>
     <h1 class="text-3xl font-extrabold mb-6">Agenda y Gestión de Citas</h1>
 
-    <!-- LÓGICA DE CONTROL POR ROL -->
-
-    <!-- 1. INTERFAZ PARA EL CLIENTE (RF-5: Reservar Cita) -->
     <div
       v-if="authStore.isClient"
       class="text-center p-10 border-2 border-dashed border-indigo-400 bg-indigo-50 rounded-xl"
@@ -20,7 +41,6 @@
       </button>
     </div>
 
-    <!-- 2. INTERFAZ PARA EL TATUADOR (RF-8: Gestión de Agenda) -->
     <div v-else-if="authStore.isTattooArtist" class="text-right pb-4">
       <button
         @click="openAvailabilityModal"
@@ -30,13 +50,11 @@
       </button>
     </div>
 
-    <!-- 3. Contenido Principal: Lista de Citas (Agenda) -->
     <div class="mt-8 bg-white p-6 rounded-xl shadow-lg">
       <h2 class="text-xl font-semibold mb-4 border-b pb-2">
         Agenda de Citas {{ authStore.isClient ? 'Confirmadas' : 'Completas' }}
       </h2>
 
-      <!-- Bloques condicionales para la lista de citas -->
       <div v-if="loadingAppointments" class="py-4 text-center text-gray-500">
         Cargando agenda real...
       </div>
@@ -50,11 +68,9 @@
           class="py-4 flex justify-between items-center"
         >
           <div>
-            <!-- Muestra info real de la API -->
             <p class="text-lg font-medium text-gray-900">{{ appointment.description }}</p>
             <p class="text-sm text-gray-500">
               Fecha: {{ formatDateTime(appointment.scheduled_at) }} |
-              <!-- Muestra el artista si eres cliente, o el cliente si eres artista -->
               <span v-if="authStore.isClient">Tatuador: {{ appointment.tattoo_artist?.name }}</span>
               <span v-else>Cliente: {{ appointment.client?.name }}</span>
             </p>
@@ -65,10 +81,9 @@
               {{ appointment.status.toUpperCase() }}
             </span>
           </div>
-          <!-- RF-7: Redirigir a la vista de gestión donde sí están los botones de Modificar/Cancelar -->
           <button
             @click="redirectToAppointments()"
-            class="text-indigo-600 hover:text-indigo-800 text-sm"
+            class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold"
           >
             Ver/Gestionar (RF-7)
           </button>
@@ -76,7 +91,6 @@
       </ul>
     </div>
 
-    <!-- Modal de Reserva de Citas (RF-5) -->
     <AppointmentModal
       :is-open="isModalOpen"
       :artists="availableTattooArtists"
@@ -92,10 +106,10 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import AppointmentModal from '../components/AppointmentModal.vue'
-import { useRouter } from 'vue-router' // Importamos el router
+import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
-const router = useRouter() // Inicializamos el router
+const router = useRouter() // Ya estaba, pero asegúrate de que se use en el template arriba
 
 // --- ESTADO DE DATOS ---
 const isModalOpen = ref(false)
@@ -131,9 +145,7 @@ async function fetchAppointments() {
   }
 }
 
-// Función para redirigir al cliente a la vista de gestión de citas
 function redirectToAppointments() {
-  // Redirige a la vista donde sí están los botones Modificar/Cancelar implementados
   router.push({ path: '/app/appointments' })
 }
 
@@ -151,9 +163,7 @@ function openAvailabilityModal() {
   alert('Funcionalidad de establecer disponibilidad del Tatuador (RF-8).')
 }
 
-// --- UTILITIES ---
 const formatDateTime = (datetime) => {
-  // Si el datetime es válido, usa toLocaleString, sino devuelve cadena vacía
   if (!datetime) return ''
   return new Date(datetime).toLocaleString()
 }
