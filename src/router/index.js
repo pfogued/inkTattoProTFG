@@ -7,7 +7,6 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import ClientDashboard from '../views/ClientDashboard.vue'
 import TattooArtistDashboard from '../views/TattooArtistDashboard.vue'
-import CalendarView from '../views/CalendarView.vue'
 import DesignGallery from '../views/DesignGallery.vue'
 import ChatView from '../views/ChatView.vue'
 import AppointmentManagement from '../views/AppointmentManagement.vue'
@@ -82,7 +81,12 @@ const router = createRouter({
           meta: { roles: [1] }, // Normalmente solo el cliente realiza el pago
         },
 
-        { path: 'calendar', name: 'Calendar', component: CalendarView, meta: { roles: [1, 2] } },
+        {
+          path: 'calendar',
+          name: 'Calendar',
+          component: AppointmentManagement,
+          meta: { roles: [1, 2] },
+        },
 
         { path: 'chat', name: 'ChatView', component: ChatView, meta: { roles: [1, 2] } },
         {

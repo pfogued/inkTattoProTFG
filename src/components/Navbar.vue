@@ -20,7 +20,7 @@
 
         <div class="flex items-center">
           <button
-            @click="handleLogout"
+            @click="triggerLogout"
             class="ml-3 p-2 rounded-full text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition duration-150"
             title="Cerrar Sesión"
           >
@@ -42,18 +42,29 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :is-open="isLogoutModalOpen"
+      title="¿Cerrar Sesión?"
+      message="¿Estás seguro de que deseas salir de InkTattooPro? Se perderá el acceso hasta que vuelvas a iniciar sesión."
+      @close="isLogoutModalOpen = false"
+      @confirm="executeLogout"
+    />
   </nav>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue' // Añadido ref
 import { useAuthStore } from '../stores/auth'
+import ConfirmModal from '../components/ConfirmModal.vue' // Importación del componente
 
 const authStore = useAuthStore()
 
+// Estado para controlar el modal
+const isLogoutModalOpen = ref(false)
+
 // Definición de enlaces para ambos roles
 const navigationLinks = [
-  // NOTA: Los `to` ya no se usan en el router-link, solo el `routeName`
   { name: 'Dashboard', to: '/app/client/dashboard', routeName: 'ClientDashboard', roles: [1] },
   {
     name: 'Dashboard',
@@ -64,22 +75,24 @@ const navigationLinks = [
   { name: 'Reservar Cita', to: '/app/calendar', routeName: 'Calendar', roles: [1] },
   { name: 'Agenda', to: '/app/calendar', routeName: 'Calendar', roles: [2] },
   { name: 'Chat', to: '/app/chat', routeName: 'ChatView', roles: [1, 2] },
-  { name: 'Diseños', to: '/app/designs', routeName: 'DesignGallery', roles: [1, 2] }, // AQUÍ ESTÁ EL ENLACE DE DISEÑOS
-  // AÑADIR ESTE ENLACE DE PAGOS (RF-13)
+  { name: 'Diseños', to: '/app/designs', routeName: 'DesignGallery', roles: [1, 2] },
   { name: 'Pagos', to: '/app/payments', routeName: 'PaymentHistory', roles: [1, 2] },
 ]
 
 const filteredLinks = computed(() => {
   const userRole = authStore.userRole
   if (!userRole) return []
-  // Muestra solo los enlaces permitidos para el rol actual (1=Cliente, 2=Tatuador)
   return navigationLinks.filter((link) => link.roles.includes(userRole))
 })
 
-// CU-04: Cerrar Sesión
-const handleLogout = () => {
-  if (confirm('¿Estás seguro de que deseas cerrar la sesión?')) {
-    authStore.logout()
-  }
+// 1. Preparamos el cierre (Abre el modal)
+const triggerLogout = () => {
+  isLogoutModalOpen.value = true
+}
+
+// 2. Ejecutamos el cierre real (Llamado desde el modal)
+const executeLogout = () => {
+  isLogoutModalOpen.value = false
+  authStore.logout()
 }
 </script>

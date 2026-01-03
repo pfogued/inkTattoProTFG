@@ -24,44 +24,19 @@
         Volver al Panel Principal
       </button>
     </div>
+
     <header class="flex justify-between items-center pb-4 border-b">
       <h1 class="text-3xl font-extrabold text-gray-900">Galería de Diseños (RF-9, RF-10)</h1>
-
       <button
         v-if="authStore.isTattooArtist"
         @click="openUploadModal"
         class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold shadow-md"
       >
-        <svg
-          class="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-          ></path>
-        </svg>
         Subir Nuevo Diseño
       </button>
     </header>
 
-    <p class="text-gray-600">
-      Diseños asociados a tu próxima cita o trabajos previos. Haz clic para ver comentarios o
-      editar.
-    </p>
-
-    <div v-if="loading" class="text-center p-10">
-      <div
-        class="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mb-2"
-      ></div>
-      <p class="text-gray-500">Cargando diseños...</p>
-    </div>
-
+    <div v-if="loading" class="text-center p-10 text-gray-500">Cargando diseños...</div>
     <div
       v-else-if="!designs.length"
       class="text-center p-10 text-gray-500 border border-dashed rounded-xl"
@@ -79,20 +54,11 @@
           @click="viewDesign(design)"
           class="h-48 w-full bg-gray-100 flex items-center justify-center cursor-pointer hover:opacity-90 transition"
         >
-          <img
-            :src="design.image_url"
-            :alt="design.title"
-            class="object-cover h-full w-full"
-            onerror="this.onerror=null; this.src='https://placehold.co/300x200/cccccc/333333?text=Diseño+No+Cargado';"
-          />
+          <img :src="design.image_url" :alt="design.title" class="object-cover h-full w-full" />
         </div>
 
         <div class="p-4">
           <h3 class="font-semibold text-gray-800 truncate">{{ design.title }}</h3>
-          <p class="text-xs text-gray-500 mt-1">
-            Subido por: {{ design.tattoo_artist?.name || 'Desconocido' }}
-          </p>
-
           <div class="mt-3 flex justify-between text-sm">
             <button
               @click="editAnnotation(design)"
@@ -100,10 +66,9 @@
             >
               Anotar / Ver Detalle
             </button>
-
             <button
               v-if="authStore.isTattooArtist && design.tattoo_artist_id === authStore.user.id"
-              @click="deleteDesign(design.id)"
+              @click="triggerDelete(design.id)"
               class="text-red-500 hover:text-red-700 font-medium"
             >
               Eliminar
@@ -124,6 +89,14 @@
       @close="isAnnotationModalOpen = false"
       @design-updated="handleDesignUpdate"
     />
+
+    <ConfirmModal
+      :isOpen="isConfirmDeleteOpen"
+      title="¿Eliminar Diseño?"
+      message="¿Estás seguro de que quieres borrar este trabajo? Esta acción eliminará la imagen y sus anotaciones de forma permanente."
+      @close="isConfirmDeleteOpen = false"
+      @confirm="executeDelete"
+    />
   </div>
 </template>
 
@@ -134,9 +107,10 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import AnnotationEditor from '../components/AnnotationEditor.vue'
 import UploadDesignModal from '../components/UploadDesignModal.vue'
+import ConfirmModal from '../components/ConfirmModal.vue' // Importación necesaria
 
 const authStore = useAuthStore()
-const router = useRouter() // Ya lo tenías importado, ahora lo usamos en el template
+const router = useRouter()
 
 const designs = ref([])
 const loading = ref(true)
@@ -144,53 +118,54 @@ const isUploadModalOpen = ref(false)
 const isAnnotationModalOpen = ref(false)
 const selectedDesign = ref(null)
 
+// Estados para el Modal de Confirmación
+const isConfirmDeleteOpen = ref(false)
+const designIdToDelete = ref(null)
+
 async function fetchDesigns() {
   loading.value = true
   try {
     const response = await axios.get('/designs')
     designs.value = response.data.designs
   } catch (error) {
-    console.error('Error al cargar diseños:', error)
-    designs.value = []
+    console.error('Error:', error)
   } finally {
     loading.value = false
+  }
+}
+
+// 1. Preparamos la eliminación (Abre el modal)
+const triggerDelete = (id) => {
+  designIdToDelete.value = id
+  isConfirmDeleteOpen.value = true
+}
+
+// 2. Ejecutamos la eliminación (Llamada a la API)
+const executeDelete = async () => {
+  isConfirmDeleteOpen.value = false
+  try {
+    await axios.delete(`/designs/${designIdToDelete.value}`)
+    fetchDesigns() // Recargamos la lista
+  } catch (error) {
+    alert('No se pudo eliminar el diseño.')
   }
 }
 
 function openUploadModal() {
   isUploadModalOpen.value = true
 }
-
 function editAnnotation(design) {
   selectedDesign.value = design
   isAnnotationModalOpen.value = true
 }
-
 function viewDesign(design) {
   editAnnotation(design)
 }
-
 function handleDesignUpdate(updatedDesign) {
   const index = designs.value.findIndex((d) => d.id === updatedDesign.id)
-  if (index !== -1) {
-    designs.value[index] = updatedDesign
-  }
+  if (index !== -1) designs.value[index] = updatedDesign
   selectedDesign.value = updatedDesign
 }
 
-async function deleteDesign(id) {
-  if (confirm('¿Estás seguro de eliminar este diseño? Esta acción no se puede deshacer.')) {
-    try {
-      await axios.delete(`/designs/${id}`)
-      alert('Diseño eliminado con éxito.')
-      fetchDesigns()
-    } catch (error) {
-      alert('Error al eliminar el diseño.')
-    }
-  }
-}
-
-onMounted(() => {
-  fetchDesigns()
-})
+onMounted(() => fetchDesigns())
 </script>

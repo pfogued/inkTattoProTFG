@@ -3,11 +3,17 @@ import { ref, onMounted } from 'vue'
 import { loadStripe } from '@stripe/stripe-js'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
+// IMPORTAMOS TU COMPONENTE
+import ConfirmModal from '../components/ConfirmModal.vue'
 
 const router = useRouter()
 const route = useRoute()
 
-// Variables de estado
+// Estado del Modal
+const isModalOpen = ref(false)
+const modalTitle = ref('')
+const modalMessage = ref('')
+
 const appointmentId = route.params.id
 const amount = ref(50)
 const processing = ref(false)
@@ -24,26 +30,26 @@ const stripePromise = loadStripe(
 onMounted(async () => {
   stripe = await stripePromise
   elements = stripe.elements()
-
   cardElement.value = elements.create('card', {
-    style: {
-      base: {
-        fontSize: '16px',
-        color: '#32325d',
-      },
-    },
+    style: { base: { fontSize: '16px', color: '#32325d' } },
   })
-
   cardElement.value.mount('#card-element')
 })
 
+// Esta función ahora solo abre tu modal
+const triggerPayment = () => {
+  modalTitle.value = 'Confirmar Pago'
+  modalMessage.value = `¿Estás seguro de realizar el pago del depósito de ${amount.value}€?`
+  isModalOpen.value = true
+}
+
+// Esta es la función que realmente paga cuando pulsas "Confirmar" en el modal
 const handlePayment = async () => {
+  isModalOpen.value = false // Cerramos el modal para empezar a procesar
   processing.value = true
   errorMessage.value = ''
 
   try {
-    // 1. Obtener el clientSecret desde Laravel
-    // ELIMINADO EL '/api' inicial porque ya está en la baseURL del main.js
     const {
       data: { clientSecret },
     } = await axios.post('/payments/create-intent', {
@@ -51,7 +57,6 @@ const handlePayment = async () => {
       appointment_id: appointmentId,
     })
 
-    // 2. Confirmar el pago con Stripe
     const result = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
         card: cardElement.value,
@@ -62,8 +67,6 @@ const handlePayment = async () => {
     if (result.error) {
       errorMessage.value = result.error.message
     } else if (result.paymentIntent.status === 'succeeded') {
-      // 3. Guardar en la DB local
-      // ELIMINADO EL '/api' inicial también aquí
       await axios.post('/payments', {
         appointment_id: appointmentId,
         amount: amount.value,
@@ -71,12 +74,11 @@ const handlePayment = async () => {
         status: 'completed',
       })
 
-      alert('¡Pago de prueba realizado con éxito!')
+      // En lugar de alert, redirigimos directamente o podrías abrir otro modal de éxito
       router.push('/app/payments')
     }
   } catch (error) {
     errorMessage.value = 'Error al conectar con el servidor.'
-    console.error('Detalle del error:', error.response || error)
   } finally {
     processing.value = false
   }
@@ -110,35 +112,20 @@ const handlePayment = async () => {
     </p>
 
     <button
-      @click="handlePayment"
+      @click="triggerPayment"
       :disabled="processing"
       class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg active:scale-95 transform"
     >
-      <span v-if="processing" class="flex items-center justify-center">
-        <svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-        Procesando...
-      </span>
+      <span v-if="processing">Procesando...</span>
       <span v-else>Confirmar y Pagar {{ amount }}€</span>
     </button>
 
-    <div class="mt-6 border-t pt-4 text-center">
-      <p class="text-xs text-gray-400">
-        Usa la tarjeta <span class="font-bold">4242 4242 4242 4242</span> para pruebas.
-      </p>
-    </div>
+    <ConfirmModal
+      :isOpen="isModalOpen"
+      :title="modalTitle"
+      :message="modalMessage"
+      @close="isModalOpen = false"
+      @confirm="handlePayment"
+    />
   </div>
 </template>
