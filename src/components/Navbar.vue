@@ -1,3 +1,54 @@
+<script setup>
+import { ref, computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import ConfirmModal from '../components/ConfirmModal.vue'
+import { useRouter } from 'vue-router' // 1. IMPORTAMOS EL ROUTER
+
+const authStore = useAuthStore()
+const router = useRouter() // 2. INICIALIZAMOS EL ROUTER
+
+// Estado para controlar el modal
+const isLogoutModalOpen = ref(false)
+
+// Definición de enlaces para ambos roles
+const navigationLinks = [
+  { name: 'Dashboard', to: '/app/client/dashboard', routeName: 'ClientDashboard', roles: [1] },
+  {
+    name: 'Dashboard',
+    to: '/app/artist/dashboard',
+    routeName: 'TattooArtistDashboard',
+    roles: [2],
+  },
+  { name: 'Reservar Cita', to: '/app/calendar', routeName: 'Calendar', roles: [1] },
+  { name: 'Agenda', to: '/app/calendar', routeName: 'Calendar', roles: [2] },
+  { name: 'Chat', to: '/app/chat', routeName: 'ChatView', roles: [1, 2] },
+  { name: 'Diseños', to: '/app/designs', routeName: 'DesignGallery', roles: [1, 2] },
+  { name: 'Pagos', to: '/app/payments', routeName: 'PaymentHistory', roles: [1, 2] },
+]
+
+const filteredLinks = computed(() => {
+  const userRole = authStore.userRole
+  if (!userRole) return []
+  return navigationLinks.filter((link) => link.roles.includes(userRole))
+})
+
+// 1. Preparamos el cierre (Abre el modal)
+const triggerLogout = () => {
+  isLogoutModalOpen.value = true
+}
+
+// 2. Ejecutamos el cierre real y redirigimos
+const executeLogout = async () => {
+  isLogoutModalOpen.value = false
+
+  // Limpiamos la sesión en el store
+  await authStore.logout()
+
+  // 3. REDIRECCIÓN AL HOME
+  router.push({ name: 'Home' })
+}
+</script>
+
 <template>
   <nav class="bg-white shadow-lg">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,47 +103,3 @@
     />
   </nav>
 </template>
-
-<script setup>
-import { ref, computed } from 'vue' // Añadido ref
-import { useAuthStore } from '../stores/auth'
-import ConfirmModal from '../components/ConfirmModal.vue' // Importación del componente
-
-const authStore = useAuthStore()
-
-// Estado para controlar el modal
-const isLogoutModalOpen = ref(false)
-
-// Definición de enlaces para ambos roles
-const navigationLinks = [
-  { name: 'Dashboard', to: '/app/client/dashboard', routeName: 'ClientDashboard', roles: [1] },
-  {
-    name: 'Dashboard',
-    to: '/app/artist/dashboard',
-    routeName: 'TattooArtistDashboard',
-    roles: [2],
-  },
-  { name: 'Reservar Cita', to: '/app/calendar', routeName: 'Calendar', roles: [1] },
-  { name: 'Agenda', to: '/app/calendar', routeName: 'Calendar', roles: [2] },
-  { name: 'Chat', to: '/app/chat', routeName: 'ChatView', roles: [1, 2] },
-  { name: 'Diseños', to: '/app/designs', routeName: 'DesignGallery', roles: [1, 2] },
-  { name: 'Pagos', to: '/app/payments', routeName: 'PaymentHistory', roles: [1, 2] },
-]
-
-const filteredLinks = computed(() => {
-  const userRole = authStore.userRole
-  if (!userRole) return []
-  return navigationLinks.filter((link) => link.roles.includes(userRole))
-})
-
-// 1. Preparamos el cierre (Abre el modal)
-const triggerLogout = () => {
-  isLogoutModalOpen.value = true
-}
-
-// 2. Ejecutamos el cierre real (Llamado desde el modal)
-const executeLogout = () => {
-  isLogoutModalOpen.value = false
-  authStore.logout()
-}
-</script>
