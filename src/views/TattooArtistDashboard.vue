@@ -73,7 +73,7 @@
           </svg>
           <div>
             <p class="font-bold text-xl">Ingresos (Pagos)</p>
-            <p class="text-sm">Historial de depósitos recibidos (RF-13).</p>
+            <p class="text-sm">Historial de depósitos recibidos.</p>
           </div>
         </div>
       </router-link>

@@ -37,7 +37,7 @@
           </svg>
           <div>
             <p class="font-bold text-xl">Mensajería</p>
-            <p class="text-sm">Chatea con tu Tatuador sobre diseños (RF-12).</p>
+            <p class="text-sm">Chatea con tu Tatuador sobre diseños.</p>
           </div>
         </div>
       </router-link>
@@ -55,7 +55,7 @@
           </svg>
           <div>
             <p class="font-bold text-xl">Historial de Pagos</p>
-            <p class="text-sm">Consulta tus depósitos y transacciones (RF-13).</p>
+            <p class="text-sm">Consulta tus depósitos y transacciones.</p>
           </div>
         </div>
       </router-link>
@@ -73,7 +73,7 @@
           </svg>
           <div>
             <p class="font-bold text-xl">Galería de Diseños</p>
-            <p class="text-sm">Explora trabajos recientes de tatuadores (RF-9).</p>
+            <p class="text-sm">Explora trabajos recientes de tatuadores.</p>
           </div>
         </div>
       </router-link>

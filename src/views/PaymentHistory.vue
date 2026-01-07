@@ -25,9 +25,7 @@
       </button>
     </div>
     <div class="bg-white shadow-xl rounded-xl p-6 mb-8 border border-gray-100">
-      <h1 class="text-3xl font-extrabold text-gray-900 mb-2">
-        Historial de Pagos y Depósitos (RF-13)
-      </h1>
+      <h1 class="text-3xl font-extrabold text-gray-900 mb-2">Historial de Pagos y Depósitos</h1>
       <p class="text-gray-500">
         {{
           authStore.isClient

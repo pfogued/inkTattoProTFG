@@ -6,9 +6,7 @@
       <!-- Encabezado -->
       <div class="text-center">
         <h2 class="text-3xl font-extrabold text-gray-900">Registro de Cuenta</h2>
-        <p class="mt-2 text-sm text-gray-600">
-          Completa el formulario para unirte a InkTattooPro (RF-1)
-        </p>
+        <p class="mt-2 text-sm text-gray-600">Completa el formulario para unirte a InkTattooPro</p>
       </div>
 
       <!-- Formulario de Registro -->
@@ -83,7 +81,7 @@
           />
           <label for="terms" class="ml-2 block text-sm text-gray-900">
             Acepto los
-            <span class="font-medium text-indigo-600">términos y condiciones</span> (RF-16)
+            <span class="font-medium text-indigo-600">términos y condiciones</span>
           </label>
         </div>
 

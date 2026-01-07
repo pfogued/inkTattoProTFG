@@ -24,7 +24,7 @@
         Volver al Panel Principal
       </button>
     </div>
-    <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Mensajería (RF-11)</h1>
+    <h1 class="text-3xl font-extrabold text-gray-900 mb-6">Mensajería</h1>
 
     <div
       class="flex-grow bg-white shadow-2xl rounded-xl overflow-hidden flex border border-gray-200"

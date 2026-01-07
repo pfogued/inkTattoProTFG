@@ -6,7 +6,7 @@
       <!-- Encabezado -->
       <div class="text-center">
         <h2 class="text-3xl font-extrabold text-gray-900">Iniciar Sesión</h2>
-        <p class="mt-2 text-sm text-gray-600">Accede a tu cuenta de InkTattooPro (RF-2)</p>
+        <p class="mt-2 text-sm text-gray-600">Accede a tu cuenta de InkTattooPro</p>
       </div>
 
       <!-- Formulario de Login -->
@@ -71,12 +71,6 @@
 
       <!-- Links de Navegación -->
       <div class="text-center text-sm mt-4 space-y-2">
-        <router-link
-          to="/forgot-password"
-          class="font-medium text-indigo-600 hover:text-indigo-500 block"
-        >
-          ¿Olvidaste tu contraseña?
-        </router-link>
         ¿No tienes cuenta?
         <router-link to="/register" class="font-medium text-green-600 hover:text-green-500">
           Regístrate aquí

@@ -26,7 +26,7 @@
     </div>
 
     <header class="flex justify-between items-center pb-4 border-b">
-      <h1 class="text-3xl font-extrabold text-gray-900">Galería de Diseños (RF-9, RF-10)</h1>
+      <h1 class="text-3xl font-extrabold text-gray-900">Galería de Diseños</h1>
       <button
         v-if="authStore.isTattooArtist"
         @click="openUploadModal"
