@@ -25,17 +25,43 @@
       </button>
     </div>
 
-    <div class="bg-white shadow-xl rounded-xl p-6 mb-8 border border-gray-100">
-      <h1 class="text-3xl font-extrabold text-gray-900 mb-2">
-        {{ authStore.isTattooArtist ? 'Agenda de Tatuador' : 'Gestión de Citas' }}
-      </h1>
-      <p class="text-gray-500">
-        {{
-          authStore.isTattooArtist
-            ? 'Revisa y gestiona las citas confirmadas y solicitudes.'
-            : 'Modifica, revisa o finaliza el pago de tus reservas.'
-        }}
-      </p>
+    <div
+      class="bg-white shadow-xl rounded-xl p-6 mb-8 border border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4"
+    >
+      <div>
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-2">
+          {{ authStore.isTattooArtist ? 'Agenda de Tatuador' : 'Gestión de Citas' }}
+        </h1>
+        <p class="text-gray-500">
+          {{
+            authStore.isTattooArtist
+              ? 'Revisa y gestiona las citas confirmadas y solicitudes.'
+              : 'Modifica, revisa o finaliza el pago de tus reservas.'
+          }}
+        </p>
+      </div>
+
+      <button
+        v-if="authStore.isClient"
+        @click="openReservation"
+        class="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-bold rounded-xl shadow-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:scale-105"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+        Nueva Cita
+      </button>
     </div>
 
     <div v-if="listLoading" class="text-center py-10 text-gray-500">
@@ -47,6 +73,15 @@
 
     <div v-else class="space-y-4">
       <div
+        v-if="appointments.length === 0"
+        class="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200"
+      >
+        <p class="text-xl font-medium text-gray-600">No hay citas registradas</p>
+        <p class="text-gray-400">Pulsa en "Nueva Cita" para empezar.</p>
+      </div>
+
+      <div
+        v-else
         v-for="app in appointments"
         :key="app.id"
         :class="[
@@ -73,12 +108,6 @@
           >
             {{ translateStatus(app.status) }}
           </span>
-          <p
-            v-if="isPast(app.scheduled_at) && app.status.toLowerCase() !== 'canceled'"
-            class="text-[10px] text-gray-400 font-bold mt-1 uppercase"
-          >
-            ✓ Historial / Pasada
-          </p>
         </div>
 
         <div class="flex flex-col space-y-2">
@@ -116,7 +145,6 @@
               Cancelar
             </button>
           </template>
-
           <div v-else class="text-xs text-gray-400 italic text-right">Sin acciones</div>
         </div>
       </div>
@@ -136,6 +164,14 @@
       @close="isConfirmModalOpen = false"
       @confirm="executeAction"
     />
+
+    <AppointmentModal
+      :is-open="isReservationModalOpen"
+      :artists="availableArtists"
+      :artists-loading="artistsLoading"
+      @close="isReservationModalOpen = false"
+      @appointment-booked="fetchAppointments"
+    />
   </div>
 </template>
 
@@ -146,12 +182,21 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import ModificationModal from '../components/ModificationModal.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
+import AppointmentModal from '../components/AppointmentModal.vue' // IMPORTANTE
 
 const authStore = useAuthStore()
 const router = useRouter()
 
+// ESTADOS DE LA LISTA
 const appointments = ref([])
 const listLoading = ref(true)
+
+// ESTADOS DEL CALENDARIO/RESERVA
+const isReservationModalOpen = ref(false)
+const availableArtists = ref([])
+const artistsLoading = ref(false)
+
+// ESTADOS DE MODALES DE GESTIÓN
 const isModificationModalOpen = ref(false)
 const selectedAppointment = ref(null)
 const isConfirmModalOpen = ref(false)
@@ -159,7 +204,7 @@ const activeAppointmentId = ref(null)
 const activeAction = ref('')
 const modalContent = reactive({ title: '', message: '' })
 
-// NUEVA FUNCIÓN DE APOYO
+// FUNCIONES DE APOYO
 const isPast = (date) => {
   if (!date) return false
   return new Date(date) < new Date()
@@ -172,18 +217,34 @@ const translateStatus = (status) => {
   return translations[s] || status
 }
 
+// CARGAR CITAS
 const fetchAppointments = async () => {
   listLoading.value = true
   try {
     const response = await axios.get('/appointments')
-    appointments.value = response.data.appointments
+    appointments.value = response.data.appointments || response.data
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error al cargar citas:', error)
   } finally {
     listLoading.value = false
   }
 }
 
+// CARGAR TATUADORES Y ABRIR CALENDARIO
+const openReservation = async () => {
+  isReservationModalOpen.value = true
+  artistsLoading.value = true
+  try {
+    const response = await axios.get('/tattoo-artists')
+    availableArtists.value = response.data.artists || response.data
+  } catch (error) {
+    console.error('Error al cargar tatuadores:', error)
+  } finally {
+    artistsLoading.value = false
+  }
+}
+
+// LÓGICA DE ACCIONES (Confirmar/Cancelar)
 const triggerAction = (id, type) => {
   activeAppointmentId.value = id
   activeAction.value = type
