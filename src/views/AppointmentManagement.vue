@@ -77,7 +77,6 @@
         class="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200"
       >
         <p class="text-xl font-medium text-gray-600">No hay citas registradas</p>
-        <p class="text-gray-400">Pulsa en "Nueva Cita" para empezar.</p>
       </div>
 
       <div
@@ -110,15 +109,24 @@
           </span>
         </div>
 
-        <div class="flex flex-col space-y-2">
+        <div class="flex flex-col space-y-2 min-w-[150px]">
           <template v-if="!isPast(app.scheduled_at) && app.status.toLowerCase() !== 'canceled'">
-            <router-link
-              v-if="authStore.isClient && app.status.toLowerCase() === 'pending'"
-              :to="{ name: 'PayAppointment', params: { id: app.id } }"
-              class="py-1 px-3 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 text-center shadow-sm"
-            >
-              Pagar Depósito
-            </router-link>
+            <div v-if="authStore.isClient && app.status.toLowerCase() === 'pending'">
+              <router-link
+                v-if="!app.payments || app.payments.length === 0"
+                :to="{ name: 'PayAppointment', params: { id: app.id } }"
+                class="py-1 px-3 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 text-center shadow-sm block"
+              >
+                Pagar Depósito
+              </router-link>
+
+              <span
+                v-else
+                class="py-1 px-3 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 block text-center uppercase"
+              >
+                ✓ Depósito Pagado
+              </span>
+            </div>
 
             <button
               v-if="authStore.isTattooArtist && app.status.toLowerCase() === 'pending'"
@@ -182,21 +190,16 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import ModificationModal from '../components/ModificationModal.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
-import AppointmentModal from '../components/AppointmentModal.vue' // IMPORTANTE
+import AppointmentModal from '../components/AppointmentModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
 
-// ESTADOS DE LA LISTA
 const appointments = ref([])
 const listLoading = ref(true)
-
-// ESTADOS DEL CALENDARIO/RESERVA
 const isReservationModalOpen = ref(false)
 const availableArtists = ref([])
 const artistsLoading = ref(false)
-
-// ESTADOS DE MODALES DE GESTIÓN
 const isModificationModalOpen = ref(false)
 const selectedAppointment = ref(null)
 const isConfirmModalOpen = ref(false)
@@ -204,7 +207,6 @@ const activeAppointmentId = ref(null)
 const activeAction = ref('')
 const modalContent = reactive({ title: '', message: '' })
 
-// FUNCIONES DE APOYO
 const isPast = (date) => {
   if (!date) return false
   return new Date(date) < new Date()
@@ -217,20 +219,19 @@ const translateStatus = (status) => {
   return translations[s] || status
 }
 
-// CARGAR CITAS
 const fetchAppointments = async () => {
   listLoading.value = true
   try {
     const response = await axios.get('/appointments')
+    // El backend ahora debe enviar la relación 'payments' cargada
     appointments.value = response.data.appointments || response.data
   } catch (error) {
-    console.error('Error al cargar citas:', error)
+    console.error('Error:', error)
   } finally {
     listLoading.value = false
   }
 }
 
-// CARGAR TATUADORES Y ABRIR CALENDARIO
 const openReservation = async () => {
   isReservationModalOpen.value = true
   artistsLoading.value = true
@@ -238,19 +239,18 @@ const openReservation = async () => {
     const response = await axios.get('/tattoo-artists')
     availableArtists.value = response.data.artists || response.data
   } catch (error) {
-    console.error('Error al cargar tatuadores:', error)
+    console.error('Error:', error)
   } finally {
     artistsLoading.value = false
   }
 }
 
-// LÓGICA DE ACCIONES (Confirmar/Cancelar)
 const triggerAction = (id, type) => {
   activeAppointmentId.value = id
   activeAction.value = type
   if (type === 'confirm') {
     modalContent.title = '¿Confirmar Cita?'
-    modalContent.message = 'Al confirmar, el cliente recibirá el aviso para realizar el pago.'
+    modalContent.message = 'Al confirmar, la cita pasará a estar aprobada oficialmente.'
   } else {
     modalContent.title = '¿Cancelar Cita?'
     modalContent.message = 'Esta acción no se puede deshacer.'
