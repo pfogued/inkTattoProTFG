@@ -6,7 +6,7 @@
       <!-- Encabezado -->
       <div class="text-center">
         <h2 class="text-3xl font-extrabold text-gray-900">Iniciar Sesión</h2>
-        <p class="mt-2 text-sm text-gray-600">Accede a tu cuenta de InkTattooPro (RF-2)</p>
+        <p class="mt-2 text-sm text-gray-600">Accede a tu cuenta de InkTattooPro</p>
       </div>
 
       <!-- Formulario de Login -->
