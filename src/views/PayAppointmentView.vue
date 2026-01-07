@@ -3,7 +3,6 @@ import { ref, onMounted } from 'vue'
 import { loadStripe } from '@stripe/stripe-js'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
-// IMPORTAMOS TU COMPONENTE
 import ConfirmModal from '../components/ConfirmModal.vue'
 
 const router = useRouter()
@@ -16,7 +15,7 @@ const modalMessage = ref('')
 
 const appointmentId = route.params.id
 const amount = ref(50)
-const processing = ref(false)
+const processing = ref(false) // Este es nuestro candado
 const errorMessage = ref('')
 const cardElement = ref(null)
 
@@ -36,20 +35,25 @@ onMounted(async () => {
   cardElement.value.mount('#card-element')
 })
 
-// Esta función ahora solo abre tu modal
 const triggerPayment = () => {
+  // Si ya estamos procesando, no permitimos abrir el modal otra vez
+  if (processing.value) return
+
   modalTitle.value = 'Confirmar Pago'
   modalMessage.value = `¿Estás seguro de realizar el pago del depósito de ${amount.value}€?`
   isModalOpen.value = true
 }
 
-// Esta es la función que realmente paga cuando pulsas "Confirmar" en el modal
 const handlePayment = async () => {
-  isModalOpen.value = false // Cerramos el modal para empezar a procesar
-  processing.value = true
+  // --- BLOQUEO DE SEGURIDAD (ANTIDUPLICADOS) ---
+  if (processing.value) return
+
+  isModalOpen.value = false
+  processing.value = true // Cerramos el candado inmediatamente
   errorMessage.value = ''
 
   try {
+    // 1. Crear el intento de pago en el servidor
     const {
       data: { clientSecret },
     } = await axios.post('/payments/create-intent', {
@@ -57,6 +61,7 @@ const handlePayment = async () => {
       appointment_id: appointmentId,
     })
 
+    // 2. Confirmar el pago con la pasarela de Stripe
     const result = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
         card: cardElement.value,
@@ -66,7 +71,9 @@ const handlePayment = async () => {
 
     if (result.error) {
       errorMessage.value = result.error.message
+      processing.value = false // Solo liberamos si hay un error para que el usuario pueda reintentar
     } else if (result.paymentIntent.status === 'succeeded') {
+      // 3. Guardar el registro en nuestra base de datos
       await axios.post('/payments', {
         appointment_id: appointmentId,
         amount: amount.value,
@@ -74,20 +81,24 @@ const handlePayment = async () => {
         status: 'completed',
       })
 
-      // En lugar de alert, redirigimos directamente o podrías abrir otro modal de éxito
+      // Redirigimos al historial de pagos tras el éxito
       router.push('/app/payments')
     }
   } catch (error) {
     errorMessage.value = 'Error al conectar con el servidor.'
-  } finally {
-    processing.value = false
+    processing.value = false // Liberamos en caso de fallo de red
   }
+  // Nota: No usamos "finally" para mantener el estado 'processing' true mientras la página cambia
 }
 </script>
 
 <template>
   <div class="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md border border-gray-200 mt-10">
-    <button @click="router.back()" class="text-sm text-indigo-600 mb-4 hover:underline">
+    <button
+      @click="router.back()"
+      :disabled="processing"
+      class="text-sm text-indigo-600 mb-4 hover:underline disabled:opacity-50"
+    >
       ← Volver
     </button>
 
@@ -116,7 +127,29 @@ const handlePayment = async () => {
       :disabled="processing"
       class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg active:scale-95 transform"
     >
-      <span v-if="processing">Procesando...</span>
+      <span v-if="processing" class="flex items-center justify-center">
+        <svg
+          class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+        Procesando...
+      </span>
       <span v-else>Confirmar y Pagar {{ amount }}€</span>
     </button>
 

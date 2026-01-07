@@ -1,3 +1,76 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
+
+const authStore = useAuthStore()
+const router = useRouter()
+const payments = ref([])
+const loading = ref(true)
+
+const fetchPayments = async () => {
+  loading.value = true
+  try {
+    const response = await axios.get('/payments')
+
+    // --- FILTRO DE SEGURIDAD ---
+    // Solo aceptamos pagos que tengan un stripe_id válido (no nulos ni vacíos)
+    // y eliminamos duplicados visuales comparando el stripe_id
+    const rawPayments = response.data.payments || []
+    const uniquePayments = []
+    const seenStripeIds = new Set()
+
+    rawPayments.forEach((payment) => {
+      if (payment.stripe_id && !seenStripeIds.has(payment.stripe_id)) {
+        uniquePayments.push(payment)
+        seenStripeIds.add(payment.stripe_id)
+      }
+    })
+
+    payments.value = uniquePayments
+  } catch (error) {
+    console.error('Error al cargar historial de pagos:', error)
+    payments.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const formatDateTime = (datetime) => {
+  if (!datetime) return 'N/A'
+  return new Date(datetime).toLocaleString()
+}
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount)
+}
+
+const getStatusBadgeClass = (status) => {
+  // Normalizamos a minúsculas por si acaso
+  const s = status ? status.toLowerCase() : ''
+  switch (s) {
+    case 'completed':
+    case 'succeeded':
+      return 'bg-green-100 text-green-800'
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'failed':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const getAmountClass = (amount) => {
+  return amount > 0 ? 'text-green-600 font-bold' : 'text-gray-600'
+}
+
+onMounted(() => {
+  fetchPayments()
+})
+</script>
+
 <template>
   <div class="container mx-auto p-4 sm:p-6 lg:p-8">
     <div class="mb-6">
@@ -24,6 +97,7 @@
         Volver al Panel Principal
       </button>
     </div>
+
     <div class="bg-white shadow-xl rounded-xl p-6 mb-8 border border-gray-100">
       <h1 class="text-3xl font-extrabold text-gray-900 mb-2">Historial de Pagos y Depósitos</h1>
       <p class="text-gray-500">
@@ -43,8 +117,8 @@
         <p class="text-gray-500">Cargando historial de pagos...</p>
       </div>
 
-      <div v-else-if="payments.length === 0" class="text-center py-10 text-gray-500">
-        No se encontraron transacciones en tu historial.
+      <div v-else-if="payments.length === 0" class="text-center py-10 text-gray-500 italic">
+        No se encontraron transacciones verificadas en tu historial.
       </div>
 
       <div v-else class="overflow-x-auto">
@@ -70,7 +144,7 @@
               <th
                 class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                Tipo
+                ID Transacción
               </th>
               <th
                 class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -80,7 +154,7 @@
               <th
                 class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                Detalle Cita
+                Cita
               </th>
             </tr>
           </thead>
@@ -105,19 +179,19 @@
               >
                 {{ payment.client?.name || 'N/A' }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize">
-                {{ payment.type }}
+              <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-400">
+                {{ payment.stripe_id }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   :class="getStatusBadgeClass(payment.status)"
                   class="text-xs font-medium px-2.5 py-0.5 rounded-full capitalize"
                 >
-                  {{ payment.status }}
+                  {{ payment.status === 'succeeded' ? 'Completado' : payment.status }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ payment.appointment ? `Cita ID: ${payment.appointment.id}` : 'Sin Cita' }}
+                #{{ payment.appointment_id }}
               </td>
             </tr>
           </tbody>
@@ -126,57 +200,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router' // Importado para la navegación
-import axios from 'axios'
-import { useAuthStore } from '../stores/auth'
-
-const authStore = useAuthStore()
-const router = useRouter() // Inicializamos router
-const payments = ref([])
-const loading = ref(true)
-
-const fetchPayments = async () => {
-  loading.value = true
-  try {
-    const response = await axios.get('/payments')
-    payments.value = response.data.payments
-  } catch (error) {
-    console.error('Error al cargar historial de pagos:', error)
-    payments.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-const formatDateTime = (datetime) => {
-  return new Date(datetime).toLocaleString()
-}
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount)
-}
-
-const getStatusBadgeClass = (status) => {
-  switch (status) {
-    case 'completed':
-      return 'bg-green-100 text-green-800'
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800'
-    case 'failed':
-      return 'bg-red-100 text-red-800'
-    default:
-      return 'bg-gray-100 text-gray-800'
-  }
-}
-
-const getAmountClass = (amount) => {
-  return amount > 0 ? 'text-green-600 font-bold' : 'text-gray-600'
-}
-
-onMounted(() => {
-  fetchPayments()
-})
-</script>
