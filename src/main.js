@@ -9,7 +9,7 @@ import { useAuthStore } from './stores/auth'
 
 // CONFIGURACIÓN CORREGIDA:
 // Quitamos el /api del final para que no se duplique en las llamadas de los componentes
-axios.defaults.baseURL = 'http://localhost:8000'
+axios.defaults.baseURL = 'http://shuttle.proxy.rlwy.net:29298'
 axios.defaults.withCredentials = true
 
 const app = createApp(App)
