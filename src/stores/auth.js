@@ -70,7 +70,7 @@ export const useAuthStore = defineStore('auth', {
         // los pedimos al servidor para que el router sepa el rol
         if (!this.user) {
           try {
-            const response = await axios.get('http://localhost:8000/api/user')
+            const response = await axios.get('http://ballast.proxy.rlwy.net:37892/api/user')
             this.user = response.data
             localStorage.setItem('user', JSON.stringify(this.user))
             this.isAuthenticated = true

@@ -131,7 +131,7 @@
     <div class="grid grid-cols-2 gap-4">
       <!-- Botón Google -->
       <a
-        href="http://localhost:8000/api/auth/google/redirect"
+        href="http://ballast.proxy.rlwy.net:37892/api/auth/google/redirect"
         class="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white hover:bg-gray-50 transition-all duration-200 group"
       >
         <svg class="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
@@ -208,7 +208,7 @@ async function submitRegister() {
   try {
     // 🎯 SOLUCIÓN CRÍTICA: Usar la URL ABSOLUTA para forzar el envío POST
     // Esto resuelve el error 405 (Method Not Allowed)
-    await axios.post('http://localhost:8000/api/register', {
+    await axios.post('http://ballast.proxy.rlwy.net:37892/api/register', {
       name: form.name,
       email: form.email,
       password: form.password,

@@ -16,7 +16,7 @@ onMounted(() => {
   authStore.initialize()
 
   // Establecer la URL base para todas las llamadas a la API de Laravel
-  axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+  axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://ballast.proxy.rlwy.net:37892/api'
 })
 </script>
 
