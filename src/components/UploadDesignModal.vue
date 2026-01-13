@@ -1,5 +1,4 @@
 <template>
-  <!-- Modal de Subida de Diseño -->
   <div
     v-if="isOpen"
     class="fixed inset-0 z-50 overflow-y-auto"
@@ -10,14 +9,12 @@
     <div
       class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0"
     >
-      <!-- Overlay de fondo -->
       <div
         class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
         aria-hidden="true"
         @click="closeModal"
       ></div>
 
-      <!-- Contenedor principal del modal -->
       <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true"
         >&#8203;</span
       >
@@ -33,7 +30,6 @@
                   Subir Diseño a Portafolio (RF-8)
                 </h3>
                 <div class="mt-4 space-y-4">
-                  <!-- Título -->
                   <div>
                     <label for="title" class="block text-sm font-medium text-gray-700"
                       >Título del Diseño</label
@@ -47,7 +43,6 @@
                     />
                   </div>
 
-                  <!-- URL de la Imagen -->
                   <div>
                     <label for="imageUrl" class="block text-sm font-medium text-gray-700"
                       >URL de la Imagen (Link Directo)</label
@@ -62,7 +57,6 @@
                     />
                   </div>
 
-                  <!-- Estilo -->
                   <div>
                     <label for="style" class="block text-sm font-medium text-gray-700"
                       >Estilo del Tatuaje</label
@@ -81,7 +75,6 @@
                     </select>
                   </div>
 
-                  <!-- CLIENTE ASOCIADO (SELECT DINÁMICO) -->
                   <div>
                     <label for="clientId" class="block text-sm font-medium text-gray-700"
                       >Cliente Asociado (Opcional)</label
@@ -92,28 +85,24 @@
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                       :disabled="clientLoading"
                     >
-                      <option :value="null" disabled>-- Seleccione un cliente --</option>
                       <option :value="null">Diseño Público (Sin cliente asociado)</option>
-                      <option v-if="clientLoading" :value="null" disabled>
-                        Cargando clientes...
-                      </option>
+                      <option v-if="clientLoading" disabled>Cargando clientes...</option>
                       <option
                         v-for="client in associatedClients"
                         :key="client.id"
                         :value="client.id"
                       >
-                        {{ client.name }} (ID: {{ client.id }})
+                        {{ client.name }} ({{ client.email }})
                       </option>
                     </select>
                     <p
                       v-if="!clientLoading && associatedClients.length === 0"
-                      class="text-xs text-gray-500 mt-1"
+                      class="text-xs text-orange-600 mt-1"
                     >
-                      No hay clientes con citas reservadas aún.
+                      No tienes clientes con citas registradas en el sistema.
                     </p>
                   </div>
 
-                  <!-- Checkbox de Privacidad -->
                   <div class="flex items-center">
                     <input
                       id="isPrivate"
@@ -126,7 +115,6 @@
                     </label>
                   </div>
 
-                  <!-- Descripción -->
                   <div>
                     <label for="description" class="block text-sm font-medium text-gray-700"
                       >Descripción (Opcional)</label
@@ -139,7 +127,6 @@
                     ></textarea>
                   </div>
 
-                  <!-- Mensaje de Error/Éxito -->
                   <p
                     v-if="localMessage"
                     :class="messageClass"
@@ -149,7 +136,7 @@
                   </p>
                   <p
                     v-if="error"
-                    class="text-sm text-red-600 text-center font-medium p-2 border border-red-200 bg-red-500 rounded-lg"
+                    class="text-sm text-red-600 text-center font-medium p-2 border border-red-200 bg-red-50 rounded-lg"
                   >
                     {{ error }}
                   </p>
@@ -158,7 +145,6 @@
             </div>
           </div>
 
-          <!-- Botones de Acción -->
           <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
             <button
               type="submit"
@@ -211,35 +197,31 @@ const error = ref(null)
 const localMessage = ref(null)
 const messageClass = ref('')
 
-// Carga la lista de clientes asociados al tatuador
+// CAMBIO CRÍTICO: Ahora apunta a '/my-clients'
 const fetchAssociatedClients = async () => {
   clientLoading.value = true
   try {
-    const response = await axios.get('/clients/associated')
+    const response = await axios.get('/my-clients')
     associatedClients.value = response.data.clients
-  } catch (error) {
-    console.error('Error al cargar clientes asociados:', error)
+  } catch (err) {
+    console.error('Error al cargar clientes asociados:', err)
     associatedClients.value = []
   } finally {
     clientLoading.value = false
   }
 }
 
-// Si client_id cambia, ajusta la privacidad.
 watch(
   () => form.client_id,
   (newId) => {
-    // Si se selecciona un cliente, se sugiere que sea privado.
     if (newId) {
       form.is_private = true
     } else {
-      // Si se selecciona el diseño público o se vacía, la privacidad se desactiva.
       form.is_private = false
     }
   },
 )
 
-// Cuando el modal se abre, cargamos la lista de clientes
 watch(
   () => props.isOpen,
   (newVal) => {
@@ -269,7 +251,6 @@ const handleDesignUpload = async () => {
   localMessage.value = null
   isLoading.value = true
 
-  // Convertir client_id a entero si existe, o dejarlo null
   const payload = {
     ...form,
     client_id: form.client_id ? parseInt(form.client_id) : null,
@@ -277,22 +258,18 @@ const handleDesignUpload = async () => {
 
   try {
     const response = await axios.post('/designs', payload)
-
     localMessage.value = response.data.message || 'Diseño subido con éxito.'
     messageClass.value = 'bg-green-100 text-green-700'
-
     emit('design-uploaded')
-
     setTimeout(closeModal, 1500)
   } catch (err) {
-    let msg = 'Error al subir. Revisa la URL (debe ser directa) y los campos.'
+    let msg = 'Error al subir diseño.'
     if (err.response && err.response.data.errors) {
       msg = Object.values(err.response.data.errors).flat().join(' ')
     } else if (err.response && err.response.data.message) {
       msg = err.response.data.message
     }
     error.value = msg
-    localMessage.value = null
   } finally {
     isLoading.value = false
   }
